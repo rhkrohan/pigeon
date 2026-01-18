@@ -5,6 +5,14 @@
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Pigeon needs local network access to discover nearby devices for crisis communication.</string>
 
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
+
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_capsule-mesh._tcp</string>

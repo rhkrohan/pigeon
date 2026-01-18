@@ -13,8 +13,8 @@ class GatewayService: ObservableObject {
     @Published var syncStatus: SyncStatus = .idle
 
     // MARK: - Configuration
-    // Using webhook.site for testing - replace with your actual API endpoint in production
-    var apiEndpoint = "https://webhook.site/ac90495b-2506-45ed-9002-1cb16c9f7d1f"
+    // Local Pigeon dashboard server - update IP if needed
+    var apiEndpoint = "http://10.0.0.192:3000/api/messages"
 
     // MARK: - Private Properties
     private let monitor = NWPathMonitor()
