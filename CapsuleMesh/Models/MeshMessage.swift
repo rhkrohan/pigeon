@@ -41,53 +41,61 @@ struct MeshMessage: Codable, Identifiable, Equatable {
 
 struct MessageData: Codable {
     // GPS Coordinates
-    var latitude: Double?
-    var longitude: Double?
+    var latitude: Double? = nil
+    var longitude: Double? = nil
 
     // SOS
-    var location: String?
-    var description: String?
-    var urgency: String?
+    var location: String? = nil
+    var description: String? = nil
+    var urgency: String? = nil
+    var batteryLevel: Int? = nil  // Battery percentage (0-100)
 
     // Triage
-    var patientName: String?
-    var age: Int?
-    var condition: String?
-    var injuries: String?
-    var conscious: Bool?
-    var breathing: Bool?
+    var patientName: String? = nil
+    var age: Int? = nil
+    var condition: String? = nil
+    var injuries: String? = nil
+    var conscious: Bool? = nil
+    var breathing: Bool? = nil
 
     // Shelter
-    var shelterName: String?
-    var capacity: Int?
-    var currentOccupancy: Int?
-    var supplies: [String]?
-    var acceptingMore: Bool?
+    var shelterName: String? = nil
+    var capacity: Int? = nil
+    var currentOccupancy: Int? = nil
+    var supplies: [String]? = nil
+    var acceptingMore: Bool? = nil
 
     // Missing Person
-    var personName: String?
-    var lastSeenLocation: String?
-    var lastSeenTime: String?
-    var physicalDescription: String?
-    var contactInfo: String?
+    var personName: String? = nil
+    var lastSeenLocation: String? = nil
+    var lastSeenTime: String? = nil
+    var physicalDescription: String? = nil
+    var contactInfo: String? = nil
+    var photoBase64: String? = nil  // Base64 encoded photo
 
     // Broadcast
-    var title: String?
-    var message: String?
-    var priority: String?
+    var title: String? = nil
+    var message: String? = nil
+    var priority: String? = nil
 
     // Direct Message
-    var content: String?
+    var content: String? = nil
 
     // Ping/Pong
-    var originalSenderId: String?
-    var originalTimestamp: Date?
+    var originalSenderId: String? = nil
+    var originalTimestamp: Date? = nil
 
     // Discovery
-    var connectedPeers: [String]?
-    var requestId: String?
+    var connectedPeers: [String]? = nil
+    var requestId: String? = nil
 
     // Delivery Receipt
-    var originalMessageId: String?
-    var deliveredAt: Date?
+    var originalMessageId: String? = nil
+    var deliveredAt: Date? = nil
+
+    // Gateway Status
+    var isGateway: Bool? = nil
+    var gatewayDeviceId: String? = nil
+    var gatewayDeviceName: String? = nil
+    var syncedCount: Int? = nil
 }

@@ -1,12 +1,15 @@
 import SwiftUI
+import CoreLocation
 
 struct SettingsView: View {
     @EnvironmentObject var viewModel: MeshViewModel
     @StateObject private var gatewayService = GatewayService.shared
+    @ObservedObject private var simulationService = SimulationService.shared
     @State private var deviceName: String = DeviceIdentity.shared.deviceName
     @State private var showingClearConfirmation = false
     @State private var apiEndpoint: String = GatewayService.shared.apiEndpoint
     @State private var showingEndpointEditor = false
+    @State private var selectedScenario: SimulationScenario = .normal
 
     var body: some View {
         ZStack {
@@ -26,6 +29,7 @@ struct SettingsView: View {
                         deviceSection
                         networkSection
                         gatewaySection
+                        simulationSection
                         dataSection
                         aboutSection
                     }
@@ -437,6 +441,191 @@ struct SettingsView: View {
         }
     }
 
+    // MARK: - Simulation Section
+
+    private var simulationSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Simulation")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(.secondary)
+                .textCase(.uppercase)
+
+            VStack(spacing: 0) {
+                // Simulation Toggle
+                HStack {
+                    HStack(spacing: 10) {
+                        ZStack {
+                            Circle()
+                                .fill(simulationService.isRunning ? Color.purple.opacity(0.15) : Color.black.opacity(0.08))
+                                .frame(width: 36, height: 36)
+                            Image(systemName: simulationService.isRunning ? "play.circle.fill" : "play.circle")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(simulationService.isRunning ? .purple : .black)
+                        }
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Simulation Mode")
+                                .font(.system(size: 15))
+                                .foregroundColor(.black)
+                            Text(simulationService.isRunning ? "Running with \(simulationService.simulatedPeers.count) peers" : "Test mesh without real devices")
+                                .font(.system(size: 12))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+
+                    Spacer()
+
+                    Toggle("", isOn: Binding(
+                        get: { simulationService.isRunning },
+                        set: { newValue in
+                            if newValue {
+                                simulationService.start(scenario: selectedScenario)
+                            } else {
+                                simulationService.stop()
+                            }
+                        }
+                    ))
+                    .tint(.purple)
+                }
+                .padding(14)
+
+                if simulationService.isRunning {
+                    Divider()
+                        .padding(.leading, 60)
+
+                    // Scenario picker
+                    HStack {
+                        HStack(spacing: 10) {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.black.opacity(0.08))
+                                    .frame(width: 36, height: 36)
+                                Image(systemName: selectedScenario.icon)
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundColor(.black)
+                            }
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Scenario")
+                                    .font(.system(size: 15))
+                                    .foregroundColor(.black)
+                                Text(selectedScenario.description)
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(1)
+                            }
+                        }
+
+                        Spacer()
+
+                        Menu {
+                            ForEach(SimulationScenario.allCases) { scenario in
+                                Button {
+                                    selectedScenario = scenario
+                                    simulationService.setScenario(scenario)
+                                } label: {
+                                    Label(scenario.rawValue, systemImage: scenario.icon)
+                                }
+                            }
+                        } label: {
+                            HStack(spacing: 4) {
+                                Text(selectedScenario.rawValue)
+                                    .font(.system(size: 13, weight: .medium))
+                                Image(systemName: "chevron.up.chevron.down")
+                                    .font(.system(size: 10, weight: .medium))
+                            }
+                            .foregroundColor(.purple)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Color.purple.opacity(0.1))
+                            .clipShape(Capsule())
+                        }
+                    }
+                    .padding(14)
+
+                    Divider()
+                        .padding(.leading, 60)
+
+                    // Stats
+                    HStack {
+                        HStack(spacing: 10) {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.black.opacity(0.08))
+                                    .frame(width: 36, height: 36)
+                                Image(systemName: "person.3")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(.black)
+                            }
+
+                            Text("Simulated Peers")
+                                .font(.system(size: 15))
+                                .foregroundColor(.black)
+                        }
+
+                        Spacer()
+
+                        HStack(spacing: 12) {
+                            // Total peers
+                            HStack(spacing: 4) {
+                                Text("\(simulationService.simulatedPeers.count)")
+                                    .font(.system(size: 14, weight: .bold, design: .monospaced))
+                                Text("peers")
+                                    .font(.system(size: 11))
+                            }
+                            .foregroundColor(.secondary)
+
+                            // Gateways
+                            HStack(spacing: 4) {
+                                Image(systemName: "wifi")
+                                    .font(.system(size: 10, weight: .bold))
+                                Text("\(simulationService.simulatedPeers.filter { $0.isGateway }.count)")
+                                    .font(.system(size: 14, weight: .bold, design: .monospaced))
+                            }
+                            .foregroundColor(.green)
+                        }
+                    }
+                    .padding(14)
+
+                    Divider()
+                        .padding(.leading, 60)
+
+                    // Messages
+                    HStack {
+                        HStack(spacing: 10) {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.black.opacity(0.08))
+                                    .frame(width: 36, height: 36)
+                                Image(systemName: "bubble.left.and.bubble.right")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.black)
+                            }
+
+                            Text("Simulated Messages")
+                                .font(.system(size: 15))
+                                .foregroundColor(.black)
+                        }
+
+                        Spacer()
+
+                        Text("\(simulationService.simulatedMessages.count)")
+                            .font(.system(size: 14, weight: .bold, design: .monospaced))
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(14)
+                }
+            }
+            .background(Color.black.opacity(0.03))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+
+            Text("Simulation creates virtual peers to test mesh networking features without needing multiple physical devices.")
+                .font(.system(size: 12))
+                .foregroundColor(.secondary)
+                .padding(.horizontal, 4)
+        }
+    }
+
     // MARK: - Data Section
 
     private var dataSection: some View {
@@ -561,7 +750,7 @@ struct SettingsView: View {
 
                     Spacer()
 
-                    Text("1.0.0")
+                    Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0")
                         .font(.system(size: 15))
                         .foregroundColor(.secondary)
                 }
@@ -578,7 +767,7 @@ struct SettingsView: View {
 
                     Spacer()
 
-                    Text("5")
+                    Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1")
                         .font(.system(size: 15))
                         .foregroundColor(.secondary)
                 }

@@ -22,6 +22,7 @@ class GatewayService: ObservableObject {
     private var syncedMessageIds: Set<UUID> = []
     private let syncedIdsKey = "GatewayService.SyncedMessageIds"
     private var syncTimer: Timer?
+    private var gatewayBroadcastTimer: Timer?
     private var cancellables = Set<AnyCancellable>()
 
     enum SyncStatus: Equatable {
@@ -66,15 +67,34 @@ class GatewayService: ObservableObject {
             self?.syncMessages()
         }
 
-        // Immediate sync
+        // Start broadcasting gateway status to mesh
+        gatewayBroadcastTimer = Timer.scheduledTimer(withTimeInterval: MeshConstants.gatewayBroadcastInterval, repeats: true) { [weak self] _ in
+            self?.broadcastGatewayStatus()
+        }
+
+        // Immediate sync and broadcast
         syncMessages()
+        broadcastGatewayStatus()
     }
 
     private func deactivateGateway() {
+        // Broadcast that we're going offline before deactivating
+        broadcastGatewayStatus(goingOffline: true)
+
         isGatewayActive = false
         syncTimer?.invalidate()
         syncTimer = nil
+        gatewayBroadcastTimer?.invalidate()
+        gatewayBroadcastTimer = nil
         print("📡 Gateway deactivated - no internet access")
+    }
+
+    /// Broadcasts gateway status to the mesh network
+    private func broadcastGatewayStatus(goingOffline: Bool = false) {
+        MeshNetworkService.shared.broadcastGatewayStatus(
+            isActive: goingOffline ? false : isGatewayActive,
+            syncedCount: syncedMessageCount
+        )
     }
 
     // MARK: - Message Syncing
@@ -86,7 +106,14 @@ class GatewayService: ObservableObject {
         }
 
         let messageStore = MessageStore.shared
-        let unsyncedMessages = messageStore.messages.filter { !syncedMessageIds.contains($0.id) }
+
+        // Combine real messages with simulated messages
+        var allMessages = messageStore.messages
+        if SimulationService.shared.isRunning {
+            allMessages.append(contentsOf: SimulationService.shared.simulatedMessages)
+        }
+
+        let unsyncedMessages = allMessages.filter { !syncedMessageIds.contains($0.id) }
 
         guard !unsyncedMessages.isEmpty else {
             print("📡 No new messages to sync")
@@ -242,6 +269,7 @@ struct MessageDataPayload: Codable {
     let location: String?
     let description: String?
     let urgency: String?
+    let batteryLevel: Int?
 
     // Triage
     let patientName: String?
@@ -264,6 +292,7 @@ struct MessageDataPayload: Codable {
     let lastSeenTime: String?
     let physicalDescription: String?
     let contactInfo: String?
+    let photoBase64: String?
 
     // Broadcast
     let title: String?
@@ -279,6 +308,7 @@ struct MessageDataPayload: Codable {
         self.location = data.location
         self.description = data.description
         self.urgency = data.urgency
+        self.batteryLevel = data.batteryLevel
         self.patientName = data.patientName
         self.age = data.age
         self.condition = data.condition
@@ -295,6 +325,7 @@ struct MessageDataPayload: Codable {
         self.lastSeenTime = data.lastSeenTime
         self.physicalDescription = data.physicalDescription
         self.contactInfo = data.contactInfo
+        self.photoBase64 = data.photoBase64
         self.title = data.title
         self.message = data.message
         self.recipientId = nil

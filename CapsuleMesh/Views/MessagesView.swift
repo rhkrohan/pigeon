@@ -2,16 +2,34 @@ import SwiftUI
 
 struct MessagesView: View {
     @EnvironmentObject var viewModel: MeshViewModel
+    @ObservedObject private var simulationService = SimulationService.shared
     @State private var selectedFilter: MessageType?
     @State private var selectedMessage: MeshMessage?
     @State private var selectedQuickAction: QuickActionType?
 
+    // System message types that should not be shown in the feed
+    private static let systemMessageTypes: Set<MessageType> = [
+        .ping, .pong, .discovery, .discoveryReply, .deliveryReceipt, .gatewayStatus
+    ]
+
     var filteredMessages: [MeshMessage] {
-        let messages = viewModel.messageStore.messages.sorted { $0.timestamp > $1.timestamp }
-        guard let filter = selectedFilter else {
-            return messages
+        // Combine real and simulated messages
+        var allMessages = viewModel.messageStore.messages
+
+        // Add simulated messages if simulation is running
+        if simulationService.isRunning {
+            allMessages.append(contentsOf: simulationService.simulatedMessages)
         }
-        return messages.filter { $0.type == filter }
+
+        // Filter out system messages, then apply user filter
+        let userMessages = allMessages
+            .filter { !Self.systemMessageTypes.contains($0.type) }
+            .sorted { $0.timestamp > $1.timestamp }
+
+        guard let filter = selectedFilter else {
+            return userMessages
+        }
+        return userMessages.filter { $0.type == filter }
     }
 
     var body: some View {
@@ -32,7 +50,7 @@ struct MessagesView: View {
                     .padding(.bottom, 16)
 
                 // Content
-                if viewModel.messageStore.messages.isEmpty {
+                if filteredMessages.isEmpty {
                     emptyState
                 } else {
                     messageList
@@ -139,7 +157,8 @@ struct MessagesView: View {
             QuickActionCard(
                 icon: "megaphone.fill",
                 title: "Broadcast",
-                color: 0.7
+                borderColor: Color(red: 0.5, green: 0.4, blue: 0.8),  // Purple
+                opacity: 0.75
             ) {
                 selectedQuickAction = .broadcast
             }
@@ -147,7 +166,8 @@ struct MessagesView: View {
             QuickActionCard(
                 icon: "person.fill.questionmark",
                 title: "Missing",
-                color: 0.8
+                borderColor: Color(red: 0.95, green: 0.6, blue: 0.2),  // Orange
+                opacity: 0.85
             ) {
                 selectedQuickAction = .missingPerson
             }
@@ -155,7 +175,8 @@ struct MessagesView: View {
             QuickActionCard(
                 icon: "cross.case.fill",
                 title: "Triage",
-                color: 0.9
+                borderColor: Color(red: 0.2, green: 0.6, blue: 0.9),  // Medical blue
+                opacity: 0.9
             ) {
                 selectedQuickAction = .triage
             }
@@ -163,7 +184,8 @@ struct MessagesView: View {
             QuickActionCard(
                 icon: "house.fill",
                 title: "Shelter",
-                color: 0.75
+                borderColor: Color(red: 0.3, green: 0.7, blue: 0.4),  // Green
+                opacity: 0.8
             ) {
                 selectedQuickAction = .shelter
             }
@@ -177,7 +199,11 @@ struct MessagesView: View {
         case .broadcast:
             BroadcastSheet()
         case .missingPerson:
-            MissingPersonSheet()
+            if #available(iOS 16.0, *) {
+                MissingPersonSheet()
+            } else {
+                Text("Photo picker requires iOS 16+")
+            }
         case .triage:
             TriageSheet()
         case .shelter:
@@ -231,7 +257,7 @@ struct MessagesView: View {
                     .background(Color.black)
                     .clipShape(Capsule())
             }
-            .padding(.bottom, 40)
+            .padding(.bottom, 100)
         }
     }
 
@@ -246,7 +272,7 @@ struct MessagesView: View {
                 }
             }
             .padding(.horizontal)
-            .padding(.bottom, 20)
+            .padding(.bottom, 100)
         }
     }
 
@@ -274,11 +300,15 @@ struct MessageCard: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 14) {
-            // Type icon
+            // Type icon with black background and colored border
             ZStack {
                 Circle()
                     .fill(Color.black.opacity(iconOpacity))
                     .frame(width: 44, height: 44)
+                    .overlay(
+                        Circle()
+                            .stroke(borderColor, lineWidth: 2.5)
+                    )
 
                 Image(systemName: message.type.icon)
                     .font(.system(size: 18, weight: .medium))
@@ -320,12 +350,24 @@ struct MessageCard: View {
     private var iconOpacity: Double {
         switch message.type {
         case .sos: return 1.0
-        case .triage: return 0.85
-        case .shelter: return 0.7
-        case .missingPerson: return 0.75
-        case .broadcast: return 0.6
-        case .direct: return 0.5
-        default: return 0.5
+        case .triage: return 0.9
+        case .shelter: return 0.8
+        case .missingPerson: return 0.85
+        case .broadcast: return 0.75
+        case .direct: return 0.7
+        default: return 0.6
+        }
+    }
+
+    private var borderColor: Color {
+        switch message.type {
+        case .sos: return .red
+        case .triage: return Color(red: 0.2, green: 0.6, blue: 0.9)  // Medical blue
+        case .shelter: return Color(red: 0.3, green: 0.7, blue: 0.4)  // Green
+        case .missingPerson: return Color(red: 0.95, green: 0.6, blue: 0.2)  // Orange
+        case .broadcast: return Color(red: 0.5, green: 0.4, blue: 0.8)  // Purple
+        case .direct: return Color(red: 0.4, green: 0.4, blue: 0.4)  // Gray
+        default: return .black
         }
     }
 
@@ -368,6 +410,18 @@ struct MessageDetailSheet: View {
     let message: MeshMessage
     @Environment(\.dismiss) var dismiss
 
+    private var borderColor: Color {
+        switch message.type {
+        case .sos: return .red
+        case .triage: return Color(red: 0.2, green: 0.6, blue: 0.9)
+        case .shelter: return Color(red: 0.3, green: 0.7, blue: 0.4)
+        case .missingPerson: return Color(red: 0.95, green: 0.6, blue: 0.2)
+        case .broadcast: return Color(red: 0.5, green: 0.4, blue: 0.8)
+        case .direct: return Color(red: 0.4, green: 0.4, blue: 0.4)
+        default: return .black
+        }
+    }
+
     var body: some View {
         NavigationView {
             ScrollView {
@@ -378,6 +432,10 @@ struct MessageDetailSheet: View {
                             Circle()
                                 .fill(Color.black)
                                 .frame(width: 64, height: 64)
+                                .overlay(
+                                    Circle()
+                                        .stroke(borderColor, lineWidth: 3)
+                                )
 
                             Image(systemName: message.type.icon)
                                 .font(.system(size: 28, weight: .medium))
@@ -601,7 +659,8 @@ enum QuickActionType: String, Identifiable {
 struct QuickActionCard: View {
     let icon: String
     let title: String
-    let color: Double
+    let borderColor: Color
+    let opacity: Double
     let action: () -> Void
 
     var body: some View {
@@ -609,8 +668,12 @@ struct QuickActionCard: View {
             VStack(spacing: 10) {
                 ZStack {
                     Circle()
-                        .fill(Color.black.opacity(color))
+                        .fill(Color.black.opacity(opacity))
                         .frame(width: 48, height: 48)
+                        .overlay(
+                            Circle()
+                                .stroke(borderColor, lineWidth: 2.5)
+                        )
 
                     Image(systemName: icon)
                         .font(.system(size: 20, weight: .medium))

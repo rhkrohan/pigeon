@@ -12,6 +12,7 @@ enum MessageType: String, Codable, CaseIterable {
     case discovery = "discovery"
     case discoveryReply = "discovery-reply"
     case deliveryReceipt = "delivery-receipt"
+    case gatewayStatus = "gateway-status"  // Broadcast gateway availability to mesh
 
     var displayName: String {
         switch self {
@@ -26,6 +27,7 @@ enum MessageType: String, Codable, CaseIterable {
         case .discovery: return "Discovery"
         case .discoveryReply: return "Discovery Reply"
         case .deliveryReceipt: return "Delivery Receipt"
+        case .gatewayStatus: return "Gateway Status"
         }
     }
 
@@ -40,6 +42,7 @@ enum MessageType: String, Codable, CaseIterable {
         case .direct: return "envelope.fill"
         case .discovery, .discoveryReply: return "network"
         case .deliveryReceipt: return "checkmark.circle.fill"
+        case .gatewayStatus: return "wifi"
         }
     }
 }

@@ -44,9 +44,16 @@
             z-index: 1;
         }
 
-        /* Dark map tiles */
+        /* Dark map with white roads/text on black background */
         .leaflet-tile-pane {
-            filter: grayscale(100%) invert(100%) contrast(90%);
+            filter: invert(100%) hue-rotate(180deg) brightness(0.9) contrast(1.1);
+        }
+
+        /* Mesh network lines */
+        .mesh-line {
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            transition: stroke-dashoffset 0.1s linear;
         }
 
         .leaflet-control-attribution {
@@ -56,20 +63,33 @@
         .leaflet-control-zoom {
             border: none !important;
             box-shadow: 0 4px 20px rgba(0,0,0,0.3) !important;
+            margin-bottom: 120px !important;
+            margin-left: 32px !important;
         }
 
         .leaflet-control-zoom a {
-            background: var(--black) !important;
+            background: rgba(0,0,0,0.8) !important;
+            backdrop-filter: blur(20px) !important;
+            -webkit-backdrop-filter: blur(20px) !important;
             color: var(--white) !important;
             border: none !important;
-            width: 36px !important;
-            height: 36px !important;
-            line-height: 36px !important;
+            width: 40px !important;
+            height: 40px !important;
+            line-height: 40px !important;
             font-size: 18px !important;
+            border-radius: 12px !important;
+        }
+
+        .leaflet-control-zoom a:first-child {
+            border-radius: 12px 12px 0 0 !important;
+        }
+
+        .leaflet-control-zoom a:last-child {
+            border-radius: 0 0 12px 12px !important;
         }
 
         .leaflet-control-zoom a:hover {
-            background: #222 !important;
+            background: rgba(40,40,40,0.9) !important;
         }
 
         /* Center branding overlay */
@@ -145,6 +165,44 @@
             font-weight: 500;
         }
 
+        .top-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .clear-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 16px;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            color: var(--white);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .clear-btn:hover {
+            background: rgba(255,255,255,0.2);
+            border-color: rgba(255,255,255,0.3);
+            transform: scale(1.02);
+        }
+
+        .clear-btn:active {
+            transform: scale(0.98);
+        }
+
+        .clear-btn svg {
+            width: 16px;
+            height: 16px;
+            stroke: currentColor;
+        }
+
         .status-dot {
             width: 10px;
             height: 10px;
@@ -158,7 +216,7 @@
             50% { opacity: 0.7; transform: scale(1.1); }
         }
 
-        /* Stats bar at bottom */
+        /* Stats bar at bottom - Clean compact design */
         .stats-bar {
             position: absolute;
             bottom: 32px;
@@ -167,7 +225,9 @@
             z-index: 1000;
             display: flex;
             gap: 4px;
-            background: var(--black);
+            background: rgba(0,0,0,0.9);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             padding: 6px;
             border-radius: 20px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.5);
@@ -178,10 +238,11 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 14px 24px;
-            border-radius: 16px;
-            transition: background 0.2s;
+            padding: 12px 18px;
+            border-radius: 14px;
+            transition: all 0.2s ease;
             cursor: pointer;
+            min-width: 80px;
         }
 
         .stat-item:hover {
@@ -194,37 +255,42 @@
         }
 
         .stat-icon {
-            width: 24px;
-            height: 24px;
+            width: 22px;
+            height: 22px;
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-shrink: 0;
         }
 
         .stat-icon svg {
-            width: 20px;
-            height: 20px;
-            fill: currentColor;
+            width: 18px;
+            height: 18px;
+            stroke: currentColor;
+            stroke-width: 2;
         }
 
         .stat-content {
             display: flex;
             flex-direction: column;
+            align-items: flex-start;
         }
 
         .stat-value {
-            font-size: 22px;
+            font-size: 20px;
             font-weight: 700;
             letter-spacing: -0.5px;
             line-height: 1;
+            font-variant-numeric: tabular-nums;
         }
 
         .stat-label {
-            font-size: 11px;
+            font-size: 10px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             opacity: 0.6;
             margin-top: 2px;
+            font-weight: 500;
         }
 
         /* Side panel for feed */
@@ -283,27 +349,50 @@
             padding: 16px;
         }
 
-        /* Message cards */
+        /* Message cards - Modern liquid blur glass design */
         .message-card {
-            background: rgba(255,255,255,0.05);
+            background: rgba(255,255,255,0.06);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             border-radius: 16px;
             padding: 16px;
             margin-bottom: 12px;
-            border-left: 3px solid var(--gray-500);
-            transition: transform 0.2s, background 0.2s;
+            border: 1px solid rgba(255,255,255,0.08);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .message-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--gray-500), transparent);
+            opacity: 0.5;
         }
 
         .message-card:hover {
             background: rgba(255,255,255,0.1);
-            transform: translateX(4px);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            border-color: rgba(255,255,255,0.15);
         }
 
-        .message-card.sos { border-left-color: var(--red); }
-        .message-card.triage { border-left-color: var(--orange); }
-        .message-card.shelter { border-left-color: var(--blue); }
-        .message-card.missingPerson { border-left-color: var(--purple); }
-        .message-card.broadcast { border-left-color: var(--green); }
+        .message-card.sos::before { background: linear-gradient(90deg, transparent, var(--red), transparent); }
+        .message-card.triage::before { background: linear-gradient(90deg, transparent, var(--orange), transparent); }
+        .message-card.shelter::before { background: linear-gradient(90deg, transparent, var(--blue), transparent); }
+        .message-card.missingPerson::before { background: linear-gradient(90deg, transparent, var(--purple), transparent); }
+        .message-card.broadcast::before { background: linear-gradient(90deg, transparent, var(--green), transparent); }
+
+        .message-card.sos:hover { border-color: rgba(239, 68, 68, 0.3); box-shadow: 0 8px 32px rgba(239, 68, 68, 0.15); }
+        .message-card.triage:hover { border-color: rgba(249, 115, 22, 0.3); box-shadow: 0 8px 32px rgba(249, 115, 22, 0.15); }
+        .message-card.shelter:hover { border-color: rgba(59, 130, 246, 0.3); box-shadow: 0 8px 32px rgba(59, 130, 246, 0.15); }
+        .message-card.missingPerson:hover { border-color: rgba(168, 85, 247, 0.3); box-shadow: 0 8px 32px rgba(168, 85, 247, 0.15); }
+        .message-card.broadcast:hover { border-color: rgba(34, 197, 94, 0.3); box-shadow: 0 8px 32px rgba(34, 197, 94, 0.15); }
 
         .message-header {
             display: flex;
@@ -443,25 +532,43 @@
         .marker-missing { background: var(--purple); }
         .marker-broadcast { background: var(--green); }
 
-        /* Leaflet popup styling */
+        /* Leaflet popup styling - Google style */
         .leaflet-popup-content-wrapper {
-            background: var(--black) !important;
+            background: rgba(0,0,0,0.95) !important;
             color: var(--white) !important;
-            border-radius: 12px !important;
+            border-radius: 16px !important;
             padding: 0 !important;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5) !important;
+            border: 1px solid rgba(255,255,255,0.1) !important;
         }
 
         .leaflet-popup-content {
-            margin: 16px !important;
+            margin: 0 !important;
             font-family: inherit !important;
         }
 
         .leaflet-popup-tip {
-            background: var(--black) !important;
+            background: rgba(0,0,0,0.95) !important;
+            border: 1px solid rgba(255,255,255,0.1) !important;
+        }
+
+        .custom-popup .leaflet-popup-close-button {
+            color: rgba(255,255,255,0.6) !important;
+            font-size: 20px !important;
+            padding: 8px 10px !important;
         }
 
         .popup-content {
-            min-width: 180px;
+            min-width: 220px;
+            max-width: 280px;
+            padding: 16px;
+        }
+
+        .popup-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
         }
 
         .popup-type {
@@ -469,37 +576,109 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 1px;
-            margin-bottom: 8px;
-            opacity: 0.6;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.15);
+        }
+
+        .popup-type.sos { background: rgba(220, 38, 38, 0.3); color: #fca5a5; }
+        .popup-type.triage { background: rgba(234, 88, 12, 0.3); color: #fdba74; }
+        .popup-type.shelter { background: rgba(22, 163, 74, 0.3); color: #86efac; }
+        .popup-type.missingPerson { background: rgba(147, 51, 234, 0.3); color: #d8b4fe; }
+        .popup-type.broadcast { background: rgba(37, 99, 235, 0.3); color: #93c5fd; }
+
+        .popup-time {
+            font-size: 11px;
+            opacity: 0.5;
         }
 
         .popup-title {
-            font-size: 16px;
-            font-weight: 600;
+            font-size: 18px;
+            font-weight: 700;
             margin-bottom: 4px;
+            letter-spacing: -0.3px;
+        }
+
+        .popup-meta {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .popup-hops, .popup-battery {
+            font-size: 11px;
+            padding: 3px 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .popup-divider {
+            height: 1px;
+            background: rgba(255,255,255,0.1);
+            margin: 12px 0;
         }
 
         .popup-detail {
             font-size: 13px;
-            opacity: 0.7;
+            line-height: 1.5;
+        }
+
+        .popup-photo {
+            margin-top: 12px;
+        }
+
+        .popup-photo img {
+            width: 100%;
+            max-width: 250px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
         }
 
         .popup-coords {
             font-size: 11px;
-            opacity: 0.4;
-            margin-top: 8px;
-            font-family: monospace;
+            opacity: 0.5;
+            margin-top: 12px;
+            font-family: 'SF Mono', Monaco, monospace;
+            background: rgba(255,255,255,0.05);
+            padding: 6px 10px;
+            border-radius: 6px;
         }
 
-        /* Google Maps style pin markers */
+        .popup-id {
+            font-size: 10px;
+            opacity: 0.3;
+            margin-top: 10px;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        .popup-row {
+            font-size: 13px;
+            margin: 6px 0;
+            line-height: 1.5;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .popup-label {
+            opacity: 0.5;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Google Maps style pin markers - Black pins */
         .pin-marker {
             position: relative;
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+            filter: drop-shadow(0 3px 8px rgba(0,0,0,0.6));
         }
 
         .pin-shape {
-            width: 30px;
-            height: 30px;
+            width: 34px;
+            height: 34px;
             background: var(--black);
             border-radius: 50% 50% 50% 0;
             transform: rotate(-45deg);
@@ -507,6 +686,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            border: 2px solid rgba(255,255,255,0.3);
         }
 
         .pin-shape::after {
@@ -515,48 +695,110 @@
             bottom: -4px;
             left: 50%;
             transform: translateX(-50%);
-            width: 6px;
-            height: 6px;
-            background: rgba(0,0,0,0.3);
+            width: 10px;
+            height: 10px;
+            background: rgba(0,0,0,0.5);
             border-radius: 50%;
-            filter: blur(2px);
+            filter: blur(4px);
         }
 
         .pin-icon {
             font-size: 14px;
-            font-weight: 600;
+            font-weight: 700;
             color: var(--white);
             transform: rotate(45deg);
             z-index: 1;
             line-height: 1;
         }
 
-        /* SOS - red icon */
+        /* SOS - black pin with red icon */
         .pin-shape.sos {
             background: var(--black);
+            border-color: rgba(220, 38, 38, 0.6);
             animation: sosPulse 1.5s infinite;
         }
 
         .pin-shape.sos .pin-icon {
-            color: #ff6b6b;
+            color: #f87171;
             font-weight: 800;
             font-size: 16px;
         }
 
-        /* Other types - white icons */
-        .pin-shape.triage .pin-icon,
-        .pin-shape.shelter .pin-icon,
-        .pin-shape.missingPerson .pin-icon,
+        /* Triage - black pin with orange icon */
+        .pin-shape.triage .pin-icon {
+            color: #fb923c;
+        }
+
+        /* Shelter - black pin with green icon */
+        .pin-shape.shelter .pin-icon {
+            color: #4ade80;
+        }
+
+        /* Missing Person - black pin with purple icon */
+        .pin-shape.missingPerson .pin-icon {
+            color: #c084fc;
+        }
+
+        /* Broadcast - black pin with blue icon */
         .pin-shape.broadcast .pin-icon {
-            color: var(--white);
+            color: #60a5fa;
+        }
+
+        .pin-shape.triage {
+            animation: triagePulse 2s infinite;
+        }
+        .pin-shape.shelter {
+            animation: shelterPulse 2.5s infinite;
+        }
+        .pin-shape.missingPerson {
+            animation: missingPulse 2s infinite;
+        }
+        .pin-shape.broadcast {
+            animation: broadcastPulse 3s infinite;
         }
 
         @keyframes sosPulse {
             0%, 100% {
-                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+                box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.6), 0 0 20px rgba(239, 68, 68, 0.5);
             }
             50% {
-                box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+                box-shadow: 0 0 0 14px rgba(248, 113, 113, 0), 0 0 30px rgba(239, 68, 68, 0.2);
+            }
+        }
+
+        @keyframes triagePulse {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(251, 146, 60, 0.5);
+            }
+            50% {
+                box-shadow: 0 0 0 10px rgba(251, 146, 60, 0);
+            }
+        }
+
+        @keyframes shelterPulse {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.5);
+            }
+            50% {
+                box-shadow: 0 0 0 10px rgba(74, 222, 128, 0);
+            }
+        }
+
+        @keyframes missingPulse {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(192, 132, 252, 0.5);
+            }
+            50% {
+                box-shadow: 0 0 0 10px rgba(192, 132, 252, 0);
+            }
+        }
+
+        @keyframes broadcastPulse {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(96, 165, 250, 0.5);
+            }
+            50% {
+                box-shadow: 0 0 0 10px rgba(96, 165, 250, 0);
             }
         }
 
@@ -565,12 +807,86 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 30px;
-            height: 30px;
-            border: 2px solid rgba(239, 68, 68, 0.6);
+            width: 34px;
+            height: 34px;
+            border: 2px solid rgba(248, 113, 113, 0.7);
             border-radius: 50%;
             animation: pingRing 2s infinite;
             pointer-events: none;
+        }
+
+        /* Simulation mode button - matches clear button */
+        .sim-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 16px;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            color: var(--white);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .sim-btn:hover {
+            background: rgba(255,255,255,0.2);
+            border-color: rgba(255,255,255,0.3);
+            transform: scale(1.02);
+        }
+        .sim-btn:active {
+            transform: scale(0.98);
+        }
+        .sim-btn.active {
+            background: rgba(168, 85, 247, 0.3);
+            border-color: rgba(168, 85, 247, 0.5);
+            color: #c4a5fa;
+        }
+        .sim-btn svg {
+            width: 16px;
+            height: 16px;
+            stroke: currentColor;
+            fill: none;
+        }
+
+        /* Mesh layer button - matches sim button */
+        .mesh-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 16px;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            color: var(--white);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .mesh-btn:hover {
+            background: rgba(255,255,255,0.2);
+            border-color: rgba(255,255,255,0.3);
+            transform: scale(1.02);
+        }
+        .mesh-btn:active {
+            transform: scale(0.98);
+        }
+        .mesh-btn.active {
+            background: rgba(59, 130, 246, 0.3);
+            border-color: rgba(59, 130, 246, 0.5);
+            color: #93c5fd;
+        }
+        .mesh-btn svg {
+            width: 16px;
+            height: 16px;
+            stroke: currentColor;
+            fill: none;
         }
 
         @keyframes pingRing {
@@ -594,9 +910,13 @@
     <!-- Center brand watermark -->
     <div class="brand-overlay">
         <div class="brand-logo">
-            <svg viewBox="0 0 24 24" width="120" height="120" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 19c-4-4-8-6.5-8-10a8 8 0 1 1 16 0c0 3.5-4 6-8 10z"/>
-                <circle cx="12" cy="9" r="3"/>
+            <svg viewBox="0 0 100 100" width="120" height="120" fill="currentColor">
+                <!-- Wing (top, separated from body) -->
+                <path d="M30 5 Q20 5 18 15 Q16 25 25 32 L40 42 Q45 35 55 30 Q50 20 45 12 Q40 5 30 5 Z"/>
+                <!-- Body with head and tail -->
+                <path d="M35 45 Q20 50 15 65 Q10 80 20 90 Q30 95 45 90 Q55 85 60 75 L75 65 Q85 60 92 58 L95 55 Q90 52 80 52 Q70 48 65 45 Q75 40 80 35 Q72 38 62 42 Q52 45 45 50 Q40 45 35 45 Z"/>
+                <!-- Eye (cutout) -->
+                <circle cx="72" cy="50" r="4" fill="var(--black)"/>
             </svg>
         </div>
         <div class="brand-text">PIGEON</div>
@@ -606,16 +926,54 @@
     <div class="top-bar">
         <div class="logo">
             <div class="logo-icon">
-                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 19c-4-4-8-6.5-8-10a8 8 0 1 1 16 0c0 3.5-4 6-8 10z"/>
-                    <circle cx="12" cy="9" r="3"/>
+                <svg viewBox="0 0 100 100" width="28" height="28" fill="#000">
+                    <!-- Wing (top, separated from body) -->
+                    <path d="M30 5 Q20 5 18 15 Q16 25 25 32 L40 42 Q45 35 55 30 Q50 20 45 12 Q40 5 30 5 Z"/>
+                    <!-- Body with head and tail -->
+                    <path d="M35 45 Q20 50 15 65 Q10 80 20 90 Q30 95 45 90 Q55 85 60 75 L75 65 Q85 60 92 58 L95 55 Q90 52 80 52 Q70 48 65 45 Q75 40 80 35 Q72 38 62 42 Q52 45 45 50 Q40 45 35 45 Z"/>
+                    <!-- Eye (cutout) -->
+                    <circle cx="72" cy="50" r="4" fill="#fff"/>
                 </svg>
             </div>
             <span class="logo-text">Pigeon</span>
         </div>
-        <div class="status-badge">
-            <div class="status-dot"></div>
-            <span>Live Dashboard</span>
+        <div class="top-actions">
+            <button class="sim-btn" id="simBtn" onclick="toggleSimulation()">
+                <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polygon points="10 8 16 12 10 16 10 8"></polygon>
+                </svg>
+                <span id="simBtnText">Simulate</span>
+            </button>
+            <button class="mesh-btn" id="meshBtn" onclick="toggleMeshLayer()">
+                <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="5" cy="5" r="2"></circle>
+                    <circle cx="19" cy="5" r="2"></circle>
+                    <circle cx="12" cy="12" r="2"></circle>
+                    <circle cx="5" cy="19" r="2"></circle>
+                    <circle cx="19" cy="19" r="2"></circle>
+                    <line x1="7" y1="5" x2="17" y2="5"></line>
+                    <line x1="5" y1="7" x2="5" y2="17"></line>
+                    <line x1="19" y1="7" x2="19" y2="17"></line>
+                    <line x1="7" y1="19" x2="17" y2="19"></line>
+                    <line x1="7" y1="7" x2="10" y2="10"></line>
+                    <line x1="14" y1="14" x2="17" y2="17"></line>
+                    <line x1="17" y1="7" x2="14" y2="10"></line>
+                    <line x1="10" y1="14" x2="7" y2="17"></line>
+                </svg>
+                <span id="meshBtnText">Mesh</span>
+            </button>
+            <button class="clear-btn" onclick="clearAllMessages()">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                Clear All
+            </button>
+            <div class="status-badge">
+                <div class="status-dot"></div>
+                <span id="statusText">Live Dashboard</span>
+            </div>
         </div>
     </div>
 
@@ -721,9 +1079,14 @@
     <script>
         // Initialize dark-themed map
         const map = L.map('map', {
-            zoomControl: true,
+            zoomControl: false,  // Disable default, add custom position
             attributionControl: false
         }).setView([39.8283, -98.5795], 4); // Center on US
+
+        // Add zoom control at bottom left
+        L.control.zoom({
+            position: 'bottomleft'
+        }).addTo(map);
 
         // Dark map tiles
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
@@ -842,13 +1205,21 @@
         function getMessageContent(msg) {
             switch (msg.type) {
                 case 'sos':
-                    return msg.data?.description || 'Emergency alert';
+                    let sosContent = msg.data?.description || 'Emergency alert';
+                    if (msg.data?.batteryLevel !== undefined && msg.data?.batteryLevel >= 0) {
+                        sosContent += ` 🔋${msg.data.batteryLevel}%`;
+                    }
+                    return sosContent;
                 case 'triage':
                     return `${msg.data?.patientName || 'Patient'} - ${msg.data?.condition || 'Unknown'}`;
                 case 'shelter':
                     return `${msg.data?.shelterName || 'Shelter'} (${msg.data?.currentOccupancy || 0}/${msg.data?.capacity || 0})`;
                 case 'missingPerson':
-                    return `${msg.data?.personName || 'Unknown'} - ${msg.data?.lastSeenLocation || 'Unknown location'}`;
+                    let missingContent = `${msg.data?.personName || 'Unknown'} - ${msg.data?.lastSeenLocation || 'Unknown location'}`;
+                    if (msg.data?.photoBase64) {
+                        missingContent += ' 📷';
+                    }
+                    return missingContent;
                 case 'broadcast':
                     return msg.data?.message || msg.data?.title || 'Broadcast';
                 default:
@@ -865,6 +1236,55 @@
                 'broadcast': 'Broadcast'
             };
             return types[type] || type;
+        }
+
+        function getPopupContent(msg) {
+            let html = '';
+            const d = msg.data || {};
+
+            switch (msg.type) {
+                case 'sos':
+                    if (d.urgency) html += `<div class="popup-row"><span class="popup-label">Urgency:</span> <strong style="color:#ef4444">${d.urgency}</strong></div>`;
+                    if (d.description) html += `<div class="popup-row"><span class="popup-label">Details:</span> ${d.description}</div>`;
+                    if (d.location) html += `<div class="popup-row"><span class="popup-label">Location:</span> ${d.location}</div>`;
+                    return html || 'Emergency alert';
+
+                case 'triage':
+                    if (d.patientName) html += `<div class="popup-row"><span class="popup-label">Patient:</span> ${d.patientName}</div>`;
+                    if (d.age) html += `<div class="popup-row"><span class="popup-label">Age:</span> ${d.age}</div>`;
+                    if (d.condition) html += `<div class="popup-row"><span class="popup-label">Condition:</span> <strong>${d.condition}</strong></div>`;
+                    if (d.injuries) html += `<div class="popup-row"><span class="popup-label">Injuries:</span> ${d.injuries}</div>`;
+                    if (d.conscious !== undefined) html += `<div class="popup-row"><span class="popup-label">Conscious:</span> ${d.conscious ? 'Yes' : 'No'}</div>`;
+                    if (d.breathing !== undefined) html += `<div class="popup-row"><span class="popup-label">Breathing:</span> ${d.breathing ? 'Yes' : 'No'}</div>`;
+                    if (d.location) html += `<div class="popup-row"><span class="popup-label">Location:</span> ${d.location}</div>`;
+                    return html || 'Triage report';
+
+                case 'shelter':
+                    if (d.shelterName) html += `<div class="popup-row"><span class="popup-label">Name:</span> <strong>${d.shelterName}</strong></div>`;
+                    if (d.capacity) html += `<div class="popup-row"><span class="popup-label">Capacity:</span> ${d.currentOccupancy || 0}/${d.capacity}</div>`;
+                    if (d.acceptingMore !== undefined) html += `<div class="popup-row"><span class="popup-label">Accepting:</span> ${d.acceptingMore ? '<span style="color:#22c55e">Yes</span>' : '<span style="color:#ef4444">No</span>'}</div>`;
+                    if (d.supplies && d.supplies.length) html += `<div class="popup-row"><span class="popup-label">Supplies:</span> ${d.supplies.join(', ')}</div>`;
+                    if (d.location) html += `<div class="popup-row"><span class="popup-label">Location:</span> ${d.location}</div>`;
+                    return html || 'Shelter update';
+
+                case 'missingPerson':
+                    if (d.personName) html += `<div class="popup-row"><span class="popup-label">Name:</span> <strong>${d.personName}</strong></div>`;
+                    if (d.age) html += `<div class="popup-row"><span class="popup-label">Age:</span> ${d.age}</div>`;
+                    if (d.physicalDescription) html += `<div class="popup-row"><span class="popup-label">Description:</span> ${d.physicalDescription}</div>`;
+                    if (d.lastSeenLocation) html += `<div class="popup-row"><span class="popup-label">Last Seen:</span> ${d.lastSeenLocation}</div>`;
+                    if (d.lastSeenTime) html += `<div class="popup-row"><span class="popup-label">When:</span> ${d.lastSeenTime}</div>`;
+                    if (d.contactInfo) html += `<div class="popup-row"><span class="popup-label">Contact:</span> ${d.contactInfo}</div>`;
+                    return html || 'Missing person report';
+
+                case 'broadcast':
+                    if (d.title) html += `<div class="popup-row"><strong>${d.title}</strong></div>`;
+                    if (d.message) html += `<div class="popup-row">${d.message}</div>`;
+                    if (d.priority) html += `<div class="popup-row"><span class="popup-label">Priority:</span> ${d.priority}</div>`;
+                    return html || 'Broadcast message';
+
+                default:
+                    return 'Message';
+            }
         }
 
         function updateMarkers() {
@@ -909,15 +1329,30 @@
 
                 const marker = L.marker(coords, { icon });
 
-                // Minimal popup
+                // Format timestamp
+                const time = new Date(msg.timestamp);
+                const timeStr = time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                const dateStr = time.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+                // Popup with full client details - Google style
                 marker.bindPopup(`
                     <div class="popup-content">
-                        <div class="popup-type">${formatType(msg.type)}</div>
+                        <div class="popup-header">
+                            <div class="popup-type ${msg.type}">${formatType(msg.type)}</div>
+                            <div class="popup-time">${timeStr} · ${dateStr}</div>
+                        </div>
                         <div class="popup-title">${msg.senderName}</div>
-                        <div class="popup-detail">${getMessageContent(msg)}</div>
-                        ${msg.data?.latitude ? `<div class="popup-coords">${msg.data.latitude.toFixed(4)}, ${msg.data.longitude.toFixed(4)}</div>` : ''}
+                        <div class="popup-meta">
+                            ${msg.hopCount !== undefined ? `<span class="popup-hops">↗ ${msg.hopCount} hops</span>` : ''}
+                            ${msg.data?.batteryLevel !== undefined && msg.data?.batteryLevel >= 0 ? `<span class="popup-battery">🔋 ${msg.data.batteryLevel}%</span>` : ''}
+                        </div>
+                        <div class="popup-divider"></div>
+                        <div class="popup-detail">${getPopupContent(msg)}</div>
+                        ${msg.data?.photoBase64 ? `<div class="popup-photo"><img src="data:image/jpeg;base64,${msg.data.photoBase64}" /></div>` : ''}
+                        ${msg.data?.latitude ? `<div class="popup-coords">📍 ${msg.data.latitude.toFixed(5)}, ${msg.data.longitude.toFixed(5)}</div>` : ''}
+                        <div class="popup-id">ID: ${msg.id.substring(0, 8)}...</div>
                     </div>
-                `);
+                `, { maxWidth: 300, className: 'custom-popup' });
 
                 markers.addLayer(marker);
             });
@@ -937,11 +1372,265 @@
             return [lat, lng];
         }
 
+        // Clear all messages
+        async function clearAllMessages() {
+            if (!confirm('Are you sure you want to clear all messages? This cannot be undone.')) {
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/messages', { method: 'DELETE' });
+                const result = await res.json();
+
+                if (result.success) {
+                    messages = [];
+                    renderMessages();
+                    updateMarkers();
+                    fetchData(); // Refresh stats
+                    alert('All messages cleared!');
+                }
+            } catch (error) {
+                console.error('Error clearing messages:', error);
+                alert('Failed to clear messages');
+            }
+        }
+
+        // Simulation mode
+        let simulationMode = false;
+        let simulationInterval = null;
+        let simulatedMessages = [];
+
+        function toggleSimulation() {
+            simulationMode = !simulationMode;
+            const btn = document.getElementById('simBtn');
+            const btnText = document.getElementById('simBtnText');
+            const statusText = document.getElementById('statusText');
+
+            if (simulationMode) {
+                btn.classList.add('active');
+                btnText.textContent = 'Stop';
+                statusText.textContent = 'Simulation Mode';
+                startSimulation();
+            } else {
+                btn.classList.remove('active');
+                btnText.textContent = 'Simulate';
+                statusText.textContent = 'Live Dashboard';
+                stopSimulation();
+            }
+        }
+
+        function startSimulation() {
+            // Pan to Pittsburgh area
+            map.setView([40.4406, -79.9959], 13);
+
+            // Generate initial batch
+            for (let i = 0; i < 8; i++) {
+                simulatedMessages.push(generateSimulatedMessage());
+            }
+            renderSimulatedMessages();
+            updateMarkers();
+            if (meshLayerEnabled) updateMeshLines();
+
+            // Add new messages periodically
+            simulationInterval = setInterval(() => {
+                simulatedMessages.push(generateSimulatedMessage());
+                if (simulatedMessages.length > 50) simulatedMessages.shift();
+                renderSimulatedMessages();
+                updateMarkers();
+                updateSimStats();
+                if (meshLayerEnabled) updateMeshLines();
+            }, 3000);
+        }
+
+        function stopSimulation() {
+            if (simulationInterval) {
+                clearInterval(simulationInterval);
+                simulationInterval = null;
+            }
+            simulatedMessages = [];
+            fetchData(); // Return to real data
+        }
+
+        function generateSimulatedMessage() {
+            const types = ['sos', 'triage', 'shelter', 'missingPerson', 'broadcast'];
+            const type = types[Math.floor(Math.random() * types.length)];
+            const names = ['John Doe', 'Jane Smith', 'Mike Johnson', 'Sarah Williams', 'Alex Chen', 'Maria Garcia', 'David Kim', 'Emma Wilson', 'James Brown', 'Lisa Anderson'];
+            const locations = ['Downtown Pittsburgh', 'Oakland', 'Shadyside', 'Squirrel Hill', 'Strip District', 'South Side', 'North Shore', 'Lawrenceville', 'East Liberty', 'Point Breeze', 'Bloomfield', 'Mt. Washington'];
+
+            // Pittsburgh area coordinates (centered around 40.4406, -79.9959)
+            // Spread across ~0.1 degrees which is roughly 7-8 miles
+            const lat = 40.40 + Math.random() * 0.12;
+            const lng = -80.05 + Math.random() * 0.12;
+
+            let data = { latitude: lat, longitude: lng };
+
+            switch (type) {
+                case 'sos':
+                    data.urgency = ['Critical', 'High', 'Medium'][Math.floor(Math.random() * 3)];
+                    data.description = ['Need immediate help!', 'Trapped under debris', 'Medical emergency', 'Fire nearby', 'Building collapse', 'Flood waters rising'][Math.floor(Math.random() * 6)];
+                    data.location = locations[Math.floor(Math.random() * locations.length)];
+                    data.batteryLevel = Math.floor(Math.random() * 100);
+                    break;
+                case 'triage':
+                    data.patientName = names[Math.floor(Math.random() * names.length)];
+                    data.age = 20 + Math.floor(Math.random() * 60);
+                    data.condition = ['Critical', 'Serious', 'Stable', 'Minor'][Math.floor(Math.random() * 4)];
+                    data.injuries = ['Head trauma', 'Broken leg', 'Burns', 'Lacerations', 'Smoke inhalation', 'Hypothermia'][Math.floor(Math.random() * 6)];
+                    data.conscious = Math.random() > 0.3;
+                    data.breathing = Math.random() > 0.1;
+                    data.location = locations[Math.floor(Math.random() * locations.length)];
+                    break;
+                case 'shelter':
+                    data.shelterName = ['UPMC Presbyterian', 'Pitt Student Union', 'Carnegie Library', 'Heinz Field', 'PPG Arena', 'Convention Center'][Math.floor(Math.random() * 6)];
+                    data.capacity = [50, 100, 200, 500][Math.floor(Math.random() * 4)];
+                    data.currentOccupancy = Math.floor(Math.random() * data.capacity);
+                    data.acceptingMore = data.currentOccupancy < data.capacity * 0.9;
+                    data.supplies = ['Water', 'Food', 'Medical', 'Blankets', 'Generators'].slice(0, 2 + Math.floor(Math.random() * 3));
+                    data.location = locations[Math.floor(Math.random() * locations.length)];
+                    break;
+                case 'missingPerson':
+                    data.personName = names[Math.floor(Math.random() * names.length)];
+                    data.age = 5 + Math.floor(Math.random() * 75);
+                    data.physicalDescription = ['Male, 5\'10", brown hair', 'Female, 5\'5", blonde', 'Child, red jacket', 'Elderly, gray hair, glasses', 'Teen, blue hoodie'][Math.floor(Math.random() * 5)];
+                    data.lastSeenLocation = locations[Math.floor(Math.random() * locations.length)];
+                    data.lastSeenTime = ['2 hours ago', '30 minutes ago', 'Yesterday evening', 'This morning'][Math.floor(Math.random() * 4)];
+                    data.contactInfo = '412-' + Math.floor(100 + Math.random() * 900) + '-' + Math.floor(1000 + Math.random() * 9000);
+                    break;
+                case 'broadcast':
+                    data.title = ['Evacuation Notice', 'Bridge Closure', 'Weather Alert', 'Supply Drop', 'Power Outage Update'][Math.floor(Math.random() * 5)];
+                    data.message = ['Move to designated shelters immediately', 'Fort Pitt Bridge closed', 'Flash flood warning in effect', 'Supplies at Market Square', 'Power restored to Oakland'][Math.floor(Math.random() * 5)];
+                    data.priority = ['High', 'Medium', 'Low'][Math.floor(Math.random() * 3)];
+                    break;
+            }
+
+            return {
+                id: 'sim-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
+                type: type,
+                senderName: names[Math.floor(Math.random() * names.length)],
+                timestamp: new Date().toISOString(),
+                hopCount: Math.floor(Math.random() * 5),
+                data: data
+            };
+        }
+
+        function renderSimulatedMessages() {
+            messages = simulatedMessages;
+            renderMessages();
+        }
+
+        function updateSimStats() {
+            const counts = { sos: 0, triage: 0, shelter: 0, missingPerson: 0 };
+            simulatedMessages.forEach(m => { if (counts[m.type] !== undefined) counts[m.type]++; });
+
+            document.getElementById('stat-total').textContent = simulatedMessages.length;
+            document.getElementById('stat-sos').textContent = counts.sos;
+            document.getElementById('stat-triage').textContent = counts.triage;
+            document.getElementById('stat-shelter').textContent = counts.shelter;
+            document.getElementById('stat-missing').textContent = counts.missingPerson;
+        }
+
+        // Mesh layer visualization
+        let meshLayerEnabled = false;
+        let meshLines = [];
+        let meshAnimationInterval = null;
+
+        function toggleMeshLayer() {
+            meshLayerEnabled = !meshLayerEnabled;
+            const btn = document.getElementById('meshBtn');
+            const btnText = document.getElementById('meshBtnText');
+
+            if (meshLayerEnabled) {
+                btn.classList.add('active');
+                btnText.textContent = 'Mesh On';
+                updateMeshLines();
+                // Animate mesh lines
+                meshAnimationInterval = setInterval(animateMeshLines, 100);
+            } else {
+                btn.classList.remove('active');
+                btnText.textContent = 'Mesh';
+                clearMeshLines();
+                if (meshAnimationInterval) {
+                    clearInterval(meshAnimationInterval);
+                    meshAnimationInterval = null;
+                }
+            }
+        }
+
+        function updateMeshLines() {
+            clearMeshLines();
+            if (!meshLayerEnabled) return;
+
+            // Get all message coordinates
+            const coords = messages
+                .filter(m => m.data?.latitude && m.data?.longitude)
+                .map(m => ({
+                    lat: m.data.latitude,
+                    lng: m.data.longitude,
+                    type: m.type,
+                    id: m.id
+                }));
+
+            if (coords.length < 2) return;
+
+            // Connect nodes that are within range (simulating mesh network)
+            const maxDistance = 0.03; // ~2-3 km in degrees
+
+            for (let i = 0; i < coords.length; i++) {
+                for (let j = i + 1; j < coords.length; j++) {
+                    const dist = Math.sqrt(
+                        Math.pow(coords[i].lat - coords[j].lat, 2) +
+                        Math.pow(coords[i].lng - coords[j].lng, 2)
+                    );
+
+                    if (dist < maxDistance) {
+                        // Determine line color based on connection types
+                        let color = 'rgba(59, 130, 246, 0.6)'; // default blue
+                        if (coords[i].type === 'sos' || coords[j].type === 'sos') {
+                            color = 'rgba(239, 68, 68, 0.7)'; // red for SOS
+                        } else if (coords[i].type === 'shelter' || coords[j].type === 'shelter') {
+                            color = 'rgba(34, 197, 94, 0.6)'; // green for shelter
+                        }
+
+                        const line = L.polyline(
+                            [[coords[i].lat, coords[i].lng], [coords[j].lat, coords[j].lng]],
+                            {
+                                color: color,
+                                weight: 2,
+                                opacity: 0.7,
+                                dashArray: '5, 10',
+                                className: 'mesh-line'
+                            }
+                        );
+                        line.addTo(map);
+                        meshLines.push(line);
+                    }
+                }
+            }
+        }
+
+        function clearMeshLines() {
+            meshLines.forEach(line => map.removeLayer(line));
+            meshLines = [];
+        }
+
+        let meshDashOffset = 0;
+        function animateMeshLines() {
+            meshDashOffset -= 2;
+            meshLines.forEach(line => {
+                const el = line.getElement();
+                if (el) {
+                    el.style.strokeDashoffset = meshDashOffset;
+                }
+            });
+        }
+
         // Initial fetch
         fetchData();
 
-        // Poll every 3 seconds
-        setInterval(fetchData, 3000);
+        // Poll every 3 seconds (only if not simulating)
+        setInterval(() => {
+            if (!simulationMode) fetchData();
+        }, 3000);
     </script>
 </body>
 </html>

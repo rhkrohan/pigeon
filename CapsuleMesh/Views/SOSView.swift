@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct SOSView: View {
     @EnvironmentObject var viewModel: MeshViewModel
@@ -146,9 +147,9 @@ struct SOSButtonStyle: ButtonStyle {
 
 struct SOSFormSheet: View {
     @EnvironmentObject var viewModel: MeshViewModel
+    @StateObject private var locationService = LocationService.shared
     @Environment(\.dismiss) var dismiss
 
-    @State private var location = ""
     @State private var description = ""
     @State private var urgency = "high"
     @State private var showingConfirmation = false
@@ -181,35 +182,109 @@ struct SOSFormSheet: View {
                     .background(Color.red.opacity(0.05))
                     .clipShape(RoundedRectangle(cornerRadius: 20))
 
-                    // Location
+                    // Location (auto-detected)
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Your location")
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(.secondary)
                             .textCase(.uppercase)
 
-                        TextField("Where are you?", text: $location)
-                            .font(.system(size: 16))
-                            .padding(16)
-                            .background(Color.black.opacity(0.03))
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                        HStack(spacing: 12) {
+                            Image(systemName: locationService.isAuthorized ? "location.fill" : "location.slash")
+                                .font(.system(size: 18))
+                                .foregroundColor(locationService.isAuthorized ? .black : .black.opacity(0.4))
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                if let coords = locationService.locationString {
+                                    Text("GPS: \(coords)")
+                                        .font(.system(size: 15, weight: .medium))
+                                        .foregroundColor(.black)
+                                    Text("Location detected automatically")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.secondary)
+                                } else {
+                                    Text("Detecting location...")
+                                        .font(.system(size: 15, weight: .medium))
+                                        .foregroundColor(.black)
+                                    Text("GPS coordinates will be sent with your alert")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+
+                            Spacer()
+
+                            if locationService.currentLocation != nil {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 20))
+                                    .foregroundColor(.black)
+                            } else {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                            }
+                        }
+                        .padding(16)
+                        .background(Color.black.opacity(0.03))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
 
-                    // Description
+                    // Battery level (auto-detected)
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("What happened?")
+                        Text("Battery status")
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(.secondary)
                             .textCase(.uppercase)
 
+                        HStack(spacing: 12) {
+                            Image(systemName: batteryIcon)
+                                .font(.system(size: 18))
+                                .foregroundColor(batteryColor)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("\(batteryLevel)%")
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundColor(.black)
+                                Text("Battery level will be sent with your alert")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.secondary)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 20))
+                                .foregroundColor(.black)
+                        }
+                        .padding(16)
+                        .background(Color.black.opacity(0.03))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+
+                    // Description (optional)
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text("What happened?")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(.secondary)
+                                .textCase(.uppercase)
+
+                            Text("Optional")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(.secondary.opacity(0.6))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 2)
+                                .background(Color.black.opacity(0.05))
+                                .clipShape(Capsule())
+                        }
+
                         ZStack(alignment: .topLeading) {
                             TextEditor(text: $description)
                                 .font(.system(size: 16))
-                                .frame(minHeight: 100)
+                                .frame(minHeight: 80)
                                 .padding(12)
 
                             if description.isEmpty {
-                                Text("Describe the emergency...")
+                                Text("Describe the emergency (optional)...")
                                     .font(.system(size: 16))
                                     .foregroundColor(.secondary.opacity(0.5))
                                     .padding(16)
@@ -257,14 +332,13 @@ struct SOSFormSheet: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
-                        .background(canSend ? Color.red : Color.red.opacity(0.3))
+                        .background(Color.red)
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
-                    .disabled(!canSend)
                     .padding(.top, 8)
 
                     // Warning text
-                    Text("This will broadcast your location and emergency details to all devices on the mesh network.")
+                    Text("This will broadcast your GPS location and emergency details to all devices on the mesh network.")
                         .font(.system(size: 13))
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
@@ -312,10 +386,37 @@ struct SOSFormSheet: View {
                 Text("Your emergency alert has been broadcast to the Pigeon network.")
             }
         }
+        .onAppear {
+            // Ensure location updates are running
+            locationService.startUpdating()
+        }
     }
 
-    private var canSend: Bool {
-        !location.isEmpty && !description.isEmpty
+    // MARK: - Battery Properties
+
+    private var batteryLevel: Int {
+        UIDevice.current.isBatteryMonitoringEnabled = true
+        let level = UIDevice.current.batteryLevel
+        if level < 0 { return 0 }
+        return Int(level * 100)
+    }
+
+    private var batteryIcon: String {
+        let level = batteryLevel
+        switch level {
+        case 0..<20: return "battery.0"
+        case 20..<50: return "battery.25"
+        case 50..<75: return "battery.50"
+        case 75..<100: return "battery.75"
+        default: return "battery.100"
+        }
+    }
+
+    private var batteryColor: Color {
+        let level = batteryLevel
+        if level < 20 { return .red }
+        if level < 50 { return .orange }
+        return .black
     }
 
     private func urgencyColor(_ level: String) -> Color {
@@ -329,9 +430,12 @@ struct SOSFormSheet: View {
     }
 
     private func sendSOS() {
+        // Use GPS coordinates as location string, or "Unknown" if not available
+        let locationString = locationService.locationString ?? "GPS unavailable"
+
         viewModel.meshService.sendSOS(
-            location: location,
-            description: description,
+            location: locationString,
+            description: description.isEmpty ? "Emergency SOS" : description,
             urgency: urgency
         )
         showingSentAlert = true

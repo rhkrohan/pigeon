@@ -2,6 +2,8 @@ import Foundation
 import MultipeerConnectivity
 import Combine
 import os.log
+import UIKit
+import CoreLocation
 
 class MeshNetworkService: NSObject, ObservableObject {
     static let shared = MeshNetworkService()
@@ -13,11 +15,88 @@ class MeshNetworkService: NSObject, ObservableObject {
     @Published private(set) var discoveredPeers: [Peer] = []
     @Published private(set) var knownDevices: [String: Int] = [:] // deviceId: hopDistance
     @Published private(set) var networkStatus: NetworkStatus = .offline
+    @Published private(set) var knownGateways: [KnownGateway] = []  // Gateways reachable in mesh
 
     enum NetworkStatus {
         case offline
         case connecting
         case online
+    }
+
+    struct KnownGateway: Identifiable, Equatable {
+        let id: String  // deviceId
+        let name: String
+        var hops: Int
+        var lastSeen: Date
+        var syncedCount: Int
+
+        var isStale: Bool {
+            // Consider gateway stale if not seen for 2 minutes
+            Date().timeIntervalSince(lastSeen) > 120
+        }
+    }
+
+    // MARK: - Simulation Support
+
+    /// Combined peers (real + simulated) for display
+    var allPeersForDisplay: [SimulatedPeer] {
+        var peers: [SimulatedPeer] = []
+
+        // Add real connected peers
+        for peer in connectedPeers {
+            peers.append(SimulatedPeer(
+                id: peer.id.displayName,
+                name: peer.displayName,
+                location: CLLocationCoordinate2D(latitude: 0, longitude: 0), // No location for real peers
+                batteryLevel: -1,
+                isGateway: knownGateways.contains { $0.id == peer.id.displayName },
+                hops: 1,
+                isMoving: false,
+                movementSpeed: 0,
+                movementDirection: 0
+            ))
+        }
+
+        // Add simulated peers if simulation is running
+        if SimulationService.shared.isRunning {
+            peers.append(contentsOf: SimulationService.shared.simulatedPeers)
+        }
+
+        return peers
+    }
+
+    /// Combined known devices (real + simulated)
+    var allKnownDevicesForDisplay: [String: Int] {
+        var devices = knownDevices
+
+        // Add simulated peers as known devices
+        if SimulationService.shared.isRunning {
+            for peer in SimulationService.shared.simulatedPeers {
+                devices[peer.id] = peer.hops
+            }
+        }
+
+        return devices
+    }
+
+    /// Combined gateways (real + simulated)
+    var allGatewaysForDisplay: [KnownGateway] {
+        var gateways = knownGateways
+
+        // Add simulated gateways
+        if SimulationService.shared.isRunning {
+            for peer in SimulationService.shared.simulatedPeers where peer.isGateway {
+                gateways.append(KnownGateway(
+                    id: peer.id,
+                    name: peer.name,
+                    hops: peer.hops,
+                    lastSeen: Date(),
+                    syncedCount: Int.random(in: 5...50)
+                ))
+            }
+        }
+
+        return gateways
     }
 
     // MARK: - Private Properties
@@ -35,6 +114,9 @@ class MeshNetworkService: NSObject, ObservableObject {
 
     // Pending receipts
     private var pendingReceipts: [UUID: (targetId: String, timestamp: Date)] = [:]
+
+    // Auto-connect retry timer
+    private var autoConnectTimer: Timer?
 
     // MARK: - Initialization
     private override init() {
@@ -74,16 +156,33 @@ class MeshNetworkService: NSObject, ObservableObject {
         startBrowsing()
         networkStatus = .connecting
         logger.info("Mesh network started")
+
+        // Start auto-connect timer to periodically retry connecting to discovered peers
+        startAutoConnectTimer()
     }
 
     func stop() {
         stopAdvertising()
         stopBrowsing()
+        stopAutoConnectTimer()
         session.disconnect()
         connectedPeers.removeAll()
         discoveredPeers.removeAll()
         networkStatus = .offline
         logger.info("Mesh network stopped")
+    }
+
+    private func startAutoConnectTimer() {
+        autoConnectTimer?.invalidate()
+        // Every 10 seconds, try to connect to discovered but not connected peers
+        autoConnectTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { [weak self] _ in
+            self?.connectToAllDiscoveredPeers()
+        }
+    }
+
+    private func stopAutoConnectTimer() {
+        autoConnectTimer?.invalidate()
+        autoConnectTimer = nil
     }
 
     func startAdvertising() {
@@ -108,6 +207,38 @@ class MeshNetworkService: NSObject, ObservableObject {
         browser.stopBrowsingForPeers()
         isBrowsing = false
         logger.info("Stopped browsing")
+    }
+
+    /// Attempts to connect to all discovered peers that aren't already connected
+    func connectToAllDiscoveredPeers() {
+        logger.info("Attempting to connect to \(self.discoveredPeers.count) discovered peers")
+
+        for peer in self.discoveredPeers {
+            if !self.connectedPeers.contains(where: { $0.id == peer.id }) {
+                logger.info("Inviting peer: \(peer.displayName)")
+                browser.invitePeer(peer.id, to: session, withContext: nil, timeout: 30)
+            }
+        }
+    }
+
+    /// Refreshes the network - restarts discovery and attempts to connect to all peers
+    func refreshAndConnect() {
+        logger.info("Refreshing network and connecting to all peers")
+
+        // First, try to connect to any already discovered peers
+        connectToAllDiscoveredPeers()
+
+        // Restart browsing to find new peers
+        stopBrowsing()
+        stopAdvertising()
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            self?.startBrowsing()
+            self?.startAdvertising()
+
+            // Send discovery request to map network
+            self?.discoverNetwork()
+        }
     }
 
     // MARK: - Message Sending
@@ -137,12 +268,14 @@ class MeshNetworkService: NSObject, ObservableObject {
 
     func sendSOS(location: String, description: String, urgency: String = "high") {
         let coords = LocationService.shared.getCurrentLocation()
+        let batteryLevel = getBatteryLevel()
         let data = MessageData(
             latitude: coords?.latitude,
             longitude: coords?.longitude,
             location: location,
             description: description,
-            urgency: urgency
+            urgency: urgency,
+            batteryLevel: batteryLevel
         )
         let message = MeshMessage(
             type: .sos,
@@ -151,6 +284,18 @@ class MeshNetworkService: NSObject, ObservableObject {
             senderName: identity.deviceName
         )
         sendMessage(message)
+    }
+
+    /// Gets the current battery level as a percentage (0-100)
+    private func getBatteryLevel() -> Int {
+        UIDevice.current.isBatteryMonitoringEnabled = true
+        let level = UIDevice.current.batteryLevel
+        UIDevice.current.isBatteryMonitoringEnabled = false
+        // batteryLevel returns -1 if unknown, otherwise 0.0 to 1.0
+        if level < 0 {
+            return -1
+        }
+        return Int(level * 100)
     }
 
     func sendTriage(
@@ -212,7 +357,8 @@ class MeshNetworkService: NSObject, ObservableObject {
         lastSeenLocation: String,
         lastSeenTime: String,
         description: String,
-        contactInfo: String
+        contactInfo: String,
+        photoBase64: String? = nil
     ) {
         let coords = LocationService.shared.getCurrentLocation()
         let data = MessageData(
@@ -222,7 +368,8 @@ class MeshNetworkService: NSObject, ObservableObject {
             lastSeenLocation: lastSeenLocation,
             lastSeenTime: lastSeenTime,
             physicalDescription: description,
-            contactInfo: contactInfo
+            contactInfo: contactInfo,
+            photoBase64: photoBase64
         )
         let message = MeshMessage(
             type: .missingPerson,
@@ -319,6 +466,8 @@ class MeshNetworkService: NSObject, ObservableObject {
             handleDiscoveryReply(message)
         case .deliveryReceipt:
             handleDeliveryReceipt(message)
+        case .gatewayStatus:
+            handleGatewayStatus(message)
         default:
             // Store and forward all other types
             _ = messageStore.addMessage(message)
@@ -356,8 +505,9 @@ class MeshNetworkService: NSObject, ObservableObject {
         _ = messageStore.addMessage(message)
 
         // Update known devices with hop distance
+        // hopCount is how many times the message was forwarded, so actual distance is hopCount + 1
         if let originalSender = message.data.originalSenderId {
-            knownDevices[originalSender] = message.hopCount
+            knownDevices[originalSender] = message.hopCount + 1
         }
     }
 
@@ -378,12 +528,16 @@ class MeshNetworkService: NSObject, ObservableObject {
 
     private func handleDiscoveryReply(_ message: MeshMessage) {
         // Update network topology
-        knownDevices[message.senderId] = message.hopCount
+        // hopCount is how many times the message was forwarded, so actual distance is hopCount + 1
+        let senderDistance = message.hopCount + 1
+        knownDevices[message.senderId] = senderDistance
 
         if let peers = message.data.connectedPeers {
             for peer in peers {
-                if knownDevices[peer] == nil {
-                    knownDevices[peer] = message.hopCount + 1
+                // Peers connected to the sender are one hop further
+                let peerDistance = senderDistance + 1
+                if knownDevices[peer] == nil || knownDevices[peer]! > peerDistance {
+                    knownDevices[peer] = peerDistance
                 }
             }
         }
@@ -412,6 +566,70 @@ class MeshNetworkService: NSObject, ObservableObject {
             targetDeviceId: originalMessage.senderId
         )
         sendMessage(receipt)
+    }
+
+    private func handleGatewayStatus(_ message: MeshMessage) {
+        guard let isGateway = message.data.isGateway,
+              let gatewayId = message.data.gatewayDeviceId,
+              let gatewayName = message.data.gatewayDeviceName else {
+            return
+        }
+
+        let hops = message.hopCount + 1
+        let syncedCount = message.data.syncedCount ?? 0
+
+        if isGateway {
+            // Update or add gateway
+            if let index = knownGateways.firstIndex(where: { $0.id == gatewayId }) {
+                knownGateways[index].hops = min(knownGateways[index].hops, hops)
+                knownGateways[index].lastSeen = Date()
+                knownGateways[index].syncedCount = syncedCount
+            } else {
+                let gateway = KnownGateway(
+                    id: gatewayId,
+                    name: gatewayName,
+                    hops: hops,
+                    lastSeen: Date(),
+                    syncedCount: syncedCount
+                )
+                knownGateways.append(gateway)
+            }
+            logger.info("Gateway discovered: \(gatewayName) at \(hops) hops")
+        } else {
+            // Gateway went offline, remove it
+            knownGateways.removeAll { $0.id == gatewayId }
+            logger.info("Gateway offline: \(gatewayName)")
+        }
+
+        // Clean up stale gateways
+        knownGateways.removeAll { $0.isStale }
+    }
+
+    /// Broadcasts this device's gateway status to the mesh
+    func broadcastGatewayStatus(isActive: Bool, syncedCount: Int) {
+        let data = MessageData(
+            isGateway: isActive,
+            gatewayDeviceId: identity.deviceId,
+            gatewayDeviceName: identity.deviceName,
+            syncedCount: syncedCount
+        )
+        let message = MeshMessage(
+            type: .gatewayStatus,
+            data: data,
+            senderId: identity.deviceId,
+            senderName: identity.deviceName
+        )
+        sendMessage(message)
+    }
+
+    /// Returns true if there's at least one reachable gateway in the mesh
+    var hasReachableGateway: Bool {
+        !knownGateways.filter { !$0.isStale }.isEmpty
+    }
+
+    /// Returns the nearest gateway (fewest hops)
+    var nearestGateway: KnownGateway? {
+        knownGateways.filter { !$0.isStale }.min { $0.hops < $1.hops }
     }
 
     private func forwardMessage(_ message: MeshMessage, excludingPeer: MCPeerID) {
