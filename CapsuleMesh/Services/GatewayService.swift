@@ -13,8 +13,8 @@ class GatewayService: ObservableObject {
     @Published var syncStatus: SyncStatus = .idle
 
     // MARK: - Configuration
-    // Local Pigeon dashboard server - update IP if needed
-    var apiEndpoint = "http://10.0.0.192:3000/api/messages"
+    // Vercel deployed Pigeon dashboard (use stable alias URL, not deployment-specific URL)
+    var apiEndpoint = "https://pigeon-dashboard.vercel.app/api/messages"
 
     // MARK: - Private Properties
     private let monitor = NWPathMonitor()
@@ -234,6 +234,10 @@ struct MessagePayload: Codable {
 }
 
 struct MessageDataPayload: Codable {
+    // GPS Coordinates
+    let latitude: Double?
+    let longitude: Double?
+
     // SOS
     let location: String?
     let description: String?
@@ -270,6 +274,8 @@ struct MessageDataPayload: Codable {
     let content: String?
 
     init(data: MessageData) {
+        self.latitude = data.latitude
+        self.longitude = data.longitude
         self.location = data.location
         self.description = data.description
         self.urgency = data.urgency

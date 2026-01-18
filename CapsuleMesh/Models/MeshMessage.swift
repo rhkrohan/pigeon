@@ -40,6 +40,10 @@ struct MeshMessage: Codable, Identifiable, Equatable {
 }
 
 struct MessageData: Codable {
+    // GPS Coordinates
+    var latitude: Double?
+    var longitude: Double?
+
     // SOS
     var location: String?
     var description: String?

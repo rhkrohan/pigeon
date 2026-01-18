@@ -136,7 +136,10 @@ class MeshNetworkService: NSObject, ObservableObject {
     }
 
     func sendSOS(location: String, description: String, urgency: String = "high") {
+        let coords = LocationService.shared.getCurrentLocation()
         let data = MessageData(
+            latitude: coords?.latitude,
+            longitude: coords?.longitude,
             location: location,
             description: description,
             urgency: urgency
@@ -158,7 +161,10 @@ class MeshNetworkService: NSObject, ObservableObject {
         conscious: Bool,
         breathing: Bool
     ) {
+        let coords = LocationService.shared.getCurrentLocation()
         let data = MessageData(
+            latitude: coords?.latitude,
+            longitude: coords?.longitude,
             patientName: patientName,
             age: age,
             condition: condition,
@@ -182,7 +188,10 @@ class MeshNetworkService: NSObject, ObservableObject {
         supplies: [String],
         acceptingMore: Bool
     ) {
+        let coords = LocationService.shared.getCurrentLocation()
         let data = MessageData(
+            latitude: coords?.latitude,
+            longitude: coords?.longitude,
             shelterName: name,
             capacity: capacity,
             currentOccupancy: currentOccupancy,
@@ -205,7 +214,10 @@ class MeshNetworkService: NSObject, ObservableObject {
         description: String,
         contactInfo: String
     ) {
+        let coords = LocationService.shared.getCurrentLocation()
         let data = MessageData(
+            latitude: coords?.latitude,
+            longitude: coords?.longitude,
             personName: name,
             lastSeenLocation: lastSeenLocation,
             lastSeenTime: lastSeenTime,
@@ -222,7 +234,10 @@ class MeshNetworkService: NSObject, ObservableObject {
     }
 
     func sendBroadcast(title: String, message: String, priority: String = "normal") {
+        let coords = LocationService.shared.getCurrentLocation()
         let data = MessageData(
+            latitude: coords?.latitude,
+            longitude: coords?.longitude,
             title: title,
             message: message,
             priority: priority

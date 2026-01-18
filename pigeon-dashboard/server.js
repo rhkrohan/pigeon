@@ -127,9 +127,10 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Start server
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`
+// Start server (for local development)
+if (require.main === module) {
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
 ║     🕊️  PIGEON DASHBOARD SERVER                           ║
@@ -140,5 +141,9 @@ app.listen(PORT, '0.0.0.0', () => {
 ║     Waiting for gateway syncs from Pigeon app...          ║
 ║                                                           ║
 ╚═══════════════════════════════════════════════════════════╝
-    `);
-});
+        `);
+    });
+}
+
+// Export for Vercel
+module.exports = app;

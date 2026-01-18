@@ -125,11 +125,29 @@ struct NetworkMapView: View {
 
                         Spacer()
 
-                        HStack(spacing: 8) {
-                            PigeonLogoCompact(size: 22)
-                            Text("Pigeon")
-                                .font(.system(size: 18, weight: .bold, design: .rounded))
-                                .foregroundColor(.black)
+                        VStack(spacing: 6) {
+                            HStack(spacing: 8) {
+                                PigeonLogoCompact(size: 22)
+                                Text("Pigeon")
+                                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                                    .foregroundColor(.black)
+                            }
+
+                            Button {
+                                refreshNetwork()
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "arrow.triangle.2.circlepath")
+                                        .font(.system(size: 10, weight: .semibold))
+                                    Text("Refresh")
+                                        .font(.system(size: 10, weight: .semibold))
+                                }
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(Color.black)
+                                .clipShape(Capsule())
+                            }
                         }
 
                         Spacer()
@@ -236,6 +254,27 @@ struct NetworkMapView: View {
         }
         withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
             pulseScale = 1.1
+        }
+    }
+
+    private func refreshNetwork() {
+        // Restart browsing and advertising to discover new devices
+        viewModel.meshService.stopBrowsing()
+        viewModel.meshService.stopAdvertising()
+
+        // Brief delay then restart
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            viewModel.meshService.startBrowsing()
+            viewModel.meshService.startAdvertising()
+
+            // Reset view as well
+            withAnimation(.spring()) {
+                scale = 1.0
+                lastScale = 1.0
+                offset = .zero
+                lastOffset = .zero
+                selectedNode = nil
+            }
         }
     }
 

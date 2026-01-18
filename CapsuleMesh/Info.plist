@@ -5,6 +5,12 @@
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Pigeon needs local network access to discover nearby devices for crisis communication.</string>
 
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Pigeon uses your location to tag emergency messages and help responders find you.</string>
+
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Pigeon uses your location to tag emergency messages and help responders find you.</string>
+
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>

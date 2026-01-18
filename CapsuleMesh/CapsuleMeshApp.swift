@@ -5,6 +5,11 @@ struct CapsuleMeshApp: App {
     @StateObject private var viewModel = MeshViewModel()
     @State private var hasCompletedOnboarding = DeviceIdentity.shared.hasCompletedOnboarding
 
+    init() {
+        // Request location permission and start updates
+        LocationService.shared.requestPermission()
+    }
+
     var body: some Scene {
         WindowGroup {
             Group {
@@ -18,6 +23,10 @@ struct CapsuleMeshApp: App {
                 }
             }
             .preferredColorScheme(.light)
+            .onAppear {
+                // Start location updates after view appears
+                LocationService.shared.startUpdating()
+            }
         }
     }
 }

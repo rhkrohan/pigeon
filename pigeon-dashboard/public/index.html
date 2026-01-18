@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pigeon - Emergency Response Dashboard</title>
+    <title>Pigeon - Emergency Response</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         * {
@@ -15,13 +15,10 @@
         :root {
             --black: #000000;
             --white: #ffffff;
-            --gray-50: #fafafa;
             --gray-100: #f5f5f5;
             --gray-200: #e5e5e5;
-            --gray-300: #d4d4d4;
             --gray-400: #a3a3a3;
             --gray-500: #737373;
-            --gray-600: #525252;
             --red: #ef4444;
             --orange: #f97316;
             --blue: #3b82f6;
@@ -31,22 +28,86 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
-            background: var(--gray-50);
-            color: var(--black);
-            min-height: 100vh;
-        }
-
-        /* Header */
-        .header {
             background: var(--black);
             color: var(--white);
-            padding: 16px 32px;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Full screen map */
+        #map {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Dark map tiles */
+        .leaflet-tile-pane {
+            filter: grayscale(100%) invert(100%) contrast(90%);
+        }
+
+        .leaflet-control-attribution {
+            display: none;
+        }
+
+        .leaflet-control-zoom {
+            border: none !important;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3) !important;
+        }
+
+        .leaflet-control-zoom a {
+            background: var(--black) !important;
+            color: var(--white) !important;
+            border: none !important;
+            width: 36px !important;
+            height: 36px !important;
+            line-height: 36px !important;
+            font-size: 18px !important;
+        }
+
+        .leaflet-control-zoom a:hover {
+            background: #222 !important;
+        }
+
+        /* Center branding overlay */
+        .brand-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+            text-align: center;
+            pointer-events: none;
+            opacity: 0.15;
+        }
+
+        .brand-logo {
+            font-size: 120px;
+            margin-bottom: 10px;
+        }
+
+        .brand-text {
+            font-size: 72px;
+            font-weight: 800;
+            letter-spacing: -3px;
+            color: var(--white);
+        }
+
+        /* Top bar */
+        .top-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 20px 32px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, transparent 100%);
         }
 
         .logo {
@@ -56,217 +117,193 @@
         }
 
         .logo-icon {
-            width: 40px;
-            height: 40px;
+            width: 44px;
+            height: 44px;
             background: var(--white);
-            border-radius: 10px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 24px;
+            font-size: 26px;
         }
 
         .logo-text {
-            font-size: 24px;
+            font-size: 26px;
             font-weight: 700;
             letter-spacing: -0.5px;
         }
 
-        .logo-subtitle {
-            font-size: 12px;
-            color: var(--gray-400);
-            margin-top: 2px;
-        }
-
-        .header-status {
+        .status-badge {
             display: flex;
             align-items: center;
             gap: 8px;
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 30px;
             font-size: 14px;
-            color: var(--gray-400);
+            font-weight: 500;
         }
 
         .status-dot {
-            width: 8px;
-            height: 8px;
+            width: 10px;
+            height: 10px;
             background: var(--green);
             border-radius: 50%;
             animation: pulse 2s infinite;
         }
 
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
         }
 
-        /* Main Layout */
-        .main {
-            display: grid;
-            grid-template-columns: 1fr 400px;
-            gap: 24px;
-            padding: 24px;
-            max-width: 1800px;
-            margin: 0 auto;
-        }
-
-        @media (max-width: 1200px) {
-            .main {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Stats Bar */
+        /* Stats bar at bottom */
         .stats-bar {
-            grid-column: 1 / -1;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 16px;
-        }
-
-        .stat-card {
-            background: var(--white);
-            border-radius: 16px;
-            padding: 20px;
-            border: 1px solid var(--gray-200);
-        }
-
-        .stat-card.highlight {
+            position: absolute;
+            bottom: 32px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            display: flex;
+            gap: 4px;
             background: var(--black);
-            color: var(--white);
+            padding: 6px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
         }
 
-        .stat-label {
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--gray-500);
-            margin-bottom: 8px;
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 24px;
+            border-radius: 16px;
+            transition: background 0.2s;
+            cursor: pointer;
         }
 
-        .stat-card.highlight .stat-label {
-            color: var(--gray-400);
+        .stat-item:hover {
+            background: rgba(255,255,255,0.1);
         }
 
-        .stat-value {
-            font-size: 32px;
-            font-weight: 700;
-            letter-spacing: -1px;
+        .stat-item.active {
+            background: var(--white);
+            color: var(--black);
         }
 
         .stat-icon {
-            font-size: 20px;
-            margin-bottom: 8px;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        /* Map Section */
-        .map-section {
-            background: var(--white);
-            border-radius: 20px;
+        .stat-icon svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        .stat-content {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-value {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            opacity: 0.6;
+            margin-top: 2px;
+        }
+
+        /* Side panel for feed */
+        .side-panel {
+            position: absolute;
+            top: 100px;
+            right: 32px;
+            bottom: 120px;
+            width: 380px;
+            z-index: 1000;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            border: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            flex-direction: column;
             overflow: hidden;
-            border: 1px solid var(--gray-200);
+            transform: translateX(0);
+            transition: transform 0.3s ease;
         }
 
-        .section-header {
+        .side-panel.hidden {
+            transform: translateX(calc(100% + 40px));
+        }
+
+        .panel-header {
             padding: 20px 24px;
-            border-bottom: 1px solid var(--gray-200);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
             display: flex;
             align-items: center;
             justify-content: space-between;
         }
 
-        .section-title {
-            font-size: 18px;
+        .panel-title {
+            font-size: 16px;
             font-weight: 600;
         }
 
-        #map {
-            height: 500px;
-            width: 100%;
-        }
-
-        /* Messages Feed */
-        .feed-section {
-            background: var(--white);
-            border-radius: 20px;
-            border: 1px solid var(--gray-200);
-            display: flex;
-            flex-direction: column;
-            max-height: calc(100vh - 200px);
-        }
-
-        .feed-filters {
-            display: flex;
-            gap: 8px;
-            padding: 16px 24px;
-            border-bottom: 1px solid var(--gray-200);
-            flex-wrap: wrap;
-        }
-
-        .filter-btn {
-            padding: 8px 16px;
-            border-radius: 20px;
-            border: 1px solid var(--gray-300);
-            background: var(--white);
-            font-size: 13px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .filter-btn:hover {
-            border-color: var(--black);
-        }
-
-        .filter-btn.active {
-            background: var(--black);
+        .panel-toggle {
+            background: rgba(255,255,255,0.1);
+            border: none;
             color: var(--white);
-            border-color: var(--black);
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
         }
 
-        .feed-content {
+        .panel-content {
             flex: 1;
             overflow-y: auto;
             padding: 16px;
         }
 
-        /* Message Cards */
+        /* Message cards */
         .message-card {
-            background: var(--gray-50);
+            background: rgba(255,255,255,0.05);
             border-radius: 16px;
             padding: 16px;
             margin-bottom: 12px;
-            border-left: 4px solid var(--gray-300);
-            transition: transform 0.2s;
+            border-left: 3px solid var(--gray-500);
+            transition: transform 0.2s, background 0.2s;
+            cursor: pointer;
         }
 
         .message-card:hover {
+            background: rgba(255,255,255,0.1);
             transform: translateX(4px);
         }
 
-        .message-card.sos {
-            border-left-color: var(--red);
-            background: #fef2f2;
-        }
-
-        .message-card.triage {
-            border-left-color: var(--orange);
-            background: #fff7ed;
-        }
-
-        .message-card.shelter {
-            border-left-color: var(--blue);
-            background: #eff6ff;
-        }
-
-        .message-card.missingPerson {
-            border-left-color: var(--purple);
-            background: #faf5ff;
-        }
-
-        .message-card.broadcast {
-            border-left-color: var(--green);
-            background: #f0fdf4;
-        }
+        .message-card.sos { border-left-color: var(--red); }
+        .message-card.triage { border-left-color: var(--orange); }
+        .message-card.shelter { border-left-color: var(--blue); }
+        .message-card.missingPerson { border-left-color: var(--purple); }
+        .message-card.broadcast { border-left-color: var(--green); }
 
         .message-header {
             display: flex;
@@ -276,124 +313,89 @@
         }
 
         .message-type {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .type-badge {
-            font-size: 11px;
-            font-weight: 600;
+            font-size: 10px;
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 1px;
             padding: 4px 10px;
-            border-radius: 12px;
-            background: var(--black);
-            color: var(--white);
+            background: rgba(255,255,255,0.15);
+            border-radius: 6px;
         }
 
         .message-time {
-            font-size: 12px;
-            color: var(--gray-500);
+            font-size: 11px;
+            opacity: 0.5;
         }
 
         .message-sender {
             font-size: 14px;
             font-weight: 600;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
         }
 
         .message-content {
-            font-size: 14px;
-            color: var(--gray-600);
-            line-height: 1.5;
+            font-size: 13px;
+            opacity: 0.7;
+            line-height: 1.4;
         }
 
-        .message-location {
+        /* Toggle button for panel */
+        .panel-toggle-btn {
+            position: absolute;
+            right: 32px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 999;
+            background: var(--black);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: var(--white);
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 6px;
-            font-size: 13px;
-            color: var(--gray-500);
-            margin-top: 8px;
-        }
-
-        .message-details {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-            margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px solid var(--gray-200);
-        }
-
-        .detail-item {
-            font-size: 13px;
-        }
-
-        .detail-label {
-            color: var(--gray-500);
-        }
-
-        .detail-value {
-            font-weight: 500;
-        }
-
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--gray-500);
-        }
-
-        .empty-icon {
-            font-size: 48px;
-            margin-bottom: 16px;
-        }
-
-        .empty-title {
+            justify-content: center;
             font-size: 18px;
-            font-weight: 600;
-            color: var(--black);
-            margin-bottom: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            transition: transform 0.3s;
         }
 
-        /* Leaflet custom markers */
-        .custom-marker {
-            background: var(--black);
-            border-radius: 50%;
-            border: 3px solid var(--white);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        .panel-toggle-btn.shifted {
+            right: 424px;
         }
 
-        .marker-sos { background: var(--red); }
-        .marker-triage { background: var(--orange); }
-        .marker-shelter { background: var(--blue); }
-        .marker-missing { background: var(--purple); }
-
-        /* Devices list */
-        .devices-section {
-            grid-column: 1 / -1;
-            background: var(--white);
+        /* Devices indicator */
+        .devices-indicator {
+            position: absolute;
+            top: 100px;
+            left: 32px;
+            z-index: 1000;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(20px);
             border-radius: 16px;
-            padding: 20px 24px;
-            border: 1px solid var(--gray-200);
+            padding: 16px 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .devices-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.5;
+            margin-bottom: 10px;
         }
 
         .devices-list {
             display: flex;
-            gap: 16px;
-            flex-wrap: wrap;
-            margin-top: 12px;
+            flex-direction: column;
+            gap: 8px;
         }
 
-        .device-chip {
+        .device-item {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            background: var(--gray-100);
-            border-radius: 20px;
+            gap: 10px;
             font-size: 14px;
         }
 
@@ -403,124 +405,366 @@
             background: var(--green);
             border-radius: 50%;
         }
+
+        /* Empty state */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-align: center;
+            opacity: 0.5;
+        }
+
+        .empty-icon {
+            margin-bottom: 16px;
+            opacity: 0.6;
+        }
+
+        .empty-icon svg {
+            stroke: currentColor;
+        }
+
+        /* Custom map markers */
+        .custom-marker {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            border: 3px solid var(--white);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            font-size: 14px;
+        }
+
+        .marker-sos { background: var(--red); }
+        .marker-triage { background: var(--orange); }
+        .marker-shelter { background: var(--blue); }
+        .marker-missing { background: var(--purple); }
+        .marker-broadcast { background: var(--green); }
+
+        /* Leaflet popup styling */
+        .leaflet-popup-content-wrapper {
+            background: var(--black) !important;
+            color: var(--white) !important;
+            border-radius: 12px !important;
+            padding: 0 !important;
+        }
+
+        .leaflet-popup-content {
+            margin: 16px !important;
+            font-family: inherit !important;
+        }
+
+        .leaflet-popup-tip {
+            background: var(--black) !important;
+        }
+
+        .popup-content {
+            min-width: 180px;
+        }
+
+        .popup-type {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            opacity: 0.6;
+        }
+
+        .popup-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .popup-detail {
+            font-size: 13px;
+            opacity: 0.7;
+        }
+
+        .popup-coords {
+            font-size: 11px;
+            opacity: 0.4;
+            margin-top: 8px;
+            font-family: monospace;
+        }
+
+        /* Google Maps style pin markers */
+        .pin-marker {
+            position: relative;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+        }
+
+        .pin-shape {
+            width: 30px;
+            height: 30px;
+            background: var(--black);
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pin-shape::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 6px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 50%;
+            filter: blur(2px);
+        }
+
+        .pin-icon {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--white);
+            transform: rotate(45deg);
+            z-index: 1;
+            line-height: 1;
+        }
+
+        /* SOS - red icon */
+        .pin-shape.sos {
+            background: var(--black);
+            animation: sosPulse 1.5s infinite;
+        }
+
+        .pin-shape.sos .pin-icon {
+            color: #ff6b6b;
+            font-weight: 800;
+            font-size: 16px;
+        }
+
+        /* Other types - white icons */
+        .pin-shape.triage .pin-icon,
+        .pin-shape.shelter .pin-icon,
+        .pin-shape.missingPerson .pin-icon,
+        .pin-shape.broadcast .pin-icon {
+            color: var(--white);
+        }
+
+        @keyframes sosPulse {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+            }
+            50% {
+                box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+            }
+        }
+
+        .ping-ring {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 30px;
+            height: 30px;
+            border: 2px solid rgba(239, 68, 68, 0.6);
+            border-radius: 50%;
+            animation: pingRing 2s infinite;
+            pointer-events: none;
+        }
+
+        @keyframes pingRing {
+            0% {
+                width: 20px;
+                height: 20px;
+                opacity: 1;
+            }
+            100% {
+                width: 50px;
+                height: 50px;
+                opacity: 0;
+            }
+        }
     </style>
 </head>
 <body>
-    <header class="header">
+    <!-- Full screen map -->
+    <div id="map"></div>
+
+    <!-- Center brand watermark -->
+    <div class="brand-overlay">
+        <div class="brand-logo">
+            <svg viewBox="0 0 24 24" width="120" height="120" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 19c-4-4-8-6.5-8-10a8 8 0 1 1 16 0c0 3.5-4 6-8 10z"/>
+                <circle cx="12" cy="9" r="3"/>
+            </svg>
+        </div>
+        <div class="brand-text">PIGEON</div>
+    </div>
+
+    <!-- Top bar -->
+    <div class="top-bar">
         <div class="logo">
-            <div class="logo-icon">🕊️</div>
-            <div>
-                <div class="logo-text">Pigeon</div>
-                <div class="logo-subtitle">Emergency Response Dashboard</div>
+            <div class="logo-icon">
+                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 19c-4-4-8-6.5-8-10a8 8 0 1 1 16 0c0 3.5-4 6-8 10z"/>
+                    <circle cx="12" cy="9" r="3"/>
+                </svg>
             </div>
+            <span class="logo-text">Pigeon</span>
         </div>
-        <div class="header-status">
+        <div class="status-badge">
             <div class="status-dot"></div>
-            <span>Live</span>
+            <span>Live Dashboard</span>
         </div>
-    </header>
+    </div>
 
-    <main class="main">
-        <!-- Stats Bar -->
-        <div class="stats-bar">
-            <div class="stat-card highlight">
-                <div class="stat-icon">📨</div>
-                <div class="stat-label">Total Messages</div>
-                <div class="stat-value" id="stat-total">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">🚨</div>
-                <div class="stat-label">SOS Alerts</div>
-                <div class="stat-value" id="stat-sos">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">🏥</div>
-                <div class="stat-label">Triage Reports</div>
-                <div class="stat-value" id="stat-triage">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">🏠</div>
-                <div class="stat-label">Shelters</div>
-                <div class="stat-value" id="stat-shelter">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">👤</div>
-                <div class="stat-label">Missing Persons</div>
-                <div class="stat-value" id="stat-missing">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">📱</div>
-                <div class="stat-label">Connected Devices</div>
-                <div class="stat-value" id="stat-devices">0</div>
+    <!-- Devices indicator -->
+    <div class="devices-indicator">
+        <div class="devices-title">Gateway Devices</div>
+        <div class="devices-list" id="devices-list">
+            <div class="device-item">
+                <div class="device-dot" style="background: var(--gray-500);"></div>
+                <span style="opacity: 0.5;">Waiting...</span>
             </div>
         </div>
+    </div>
 
-        <!-- Connected Devices -->
-        <div class="devices-section">
-            <div class="section-title">Gateway Devices</div>
-            <div class="devices-list" id="devices-list">
-                <div class="empty-state" style="padding: 20px;">
-                    Waiting for devices to connect...
+    <!-- Side panel toggle -->
+    <button class="panel-toggle-btn shifted" id="panel-toggle" onclick="togglePanel()">
+        ◀
+    </button>
+
+    <!-- Side panel for messages -->
+    <div class="side-panel" id="side-panel">
+        <div class="panel-header">
+            <span class="panel-title">Live Feed</span>
+            <button class="panel-toggle" onclick="togglePanel()">✕</button>
+        </div>
+        <div class="panel-content" id="feed-content">
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 19c-4-4-8-6.5-8-10a8 8 0 1 1 16 0c0 3.5-4 6-8 10z"/>
+                        <circle cx="12" cy="9" r="3"/>
+                    </svg>
                 </div>
+                <div>Waiting for messages...</div>
             </div>
         </div>
+    </div>
 
-        <!-- Map Section -->
-        <div class="map-section">
-            <div class="section-header">
-                <div class="section-title">Crisis Map</div>
-            </div>
-            <div id="map"></div>
-        </div>
-
-        <!-- Messages Feed -->
-        <div class="feed-section">
-            <div class="section-header">
-                <div class="section-title">Live Feed</div>
-            </div>
-            <div class="feed-filters">
-                <button class="filter-btn active" data-filter="all">All</button>
-                <button class="filter-btn" data-filter="sos">SOS</button>
-                <button class="filter-btn" data-filter="triage">Triage</button>
-                <button class="filter-btn" data-filter="shelter">Shelter</button>
-                <button class="filter-btn" data-filter="missingPerson">Missing</button>
-                <button class="filter-btn" data-filter="broadcast">Broadcast</button>
-            </div>
-            <div class="feed-content" id="feed-content">
-                <div class="empty-state">
-                    <div class="empty-icon">🕊️</div>
-                    <div class="empty-title">Waiting for Messages</div>
-                    <div>Messages from the Pigeon mesh network will appear here</div>
-                </div>
+    <!-- Stats bar -->
+    <div class="stats-bar">
+        <div class="stat-item active" data-filter="all">
+            <span class="stat-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                </svg>
+            </span>
+            <div class="stat-content">
+                <span class="stat-value" id="stat-total">0</span>
+                <span class="stat-label">Total</span>
             </div>
         </div>
-    </main>
+        <div class="stat-item" data-filter="sos">
+            <span class="stat-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+            </span>
+            <div class="stat-content">
+                <span class="stat-value" id="stat-sos">0</span>
+                <span class="stat-label">SOS</span>
+            </div>
+        </div>
+        <div class="stat-item" data-filter="triage">
+            <span class="stat-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2v20M2 12h20"/>
+                </svg>
+            </span>
+            <div class="stat-content">
+                <span class="stat-value" id="stat-triage">0</span>
+                <span class="stat-label">Triage</span>
+            </div>
+        </div>
+        <div class="stat-item" data-filter="shelter">
+            <span class="stat-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                    <polyline points="9 22 9 12 15 12 15 22"/>
+                </svg>
+            </span>
+            <div class="stat-content">
+                <span class="stat-value" id="stat-shelter">0</span>
+                <span class="stat-label">Shelters</span>
+            </div>
+        </div>
+        <div class="stat-item" data-filter="missingPerson">
+            <span class="stat-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                </svg>
+            </span>
+            <div class="stat-content">
+                <span class="stat-value" id="stat-missing">0</span>
+                <span class="stat-label">Missing</span>
+            </div>
+        </div>
+    </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Initialize map
-        const map = L.map('map').setView([40.4406, -79.9959], 12); // Pittsburgh coordinates
+        // Initialize dark-themed map
+        const map = L.map('map', {
+            zoomControl: true,
+            attributionControl: false
+        }).setView([39.8283, -98.5795], 4); // Center on US
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; OpenStreetMap, &copy; CARTO'
+        // Dark map tiles
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            maxZoom: 19
         }).addTo(map);
 
         // State
-        let currentFilter = 'all';
         let messages = [];
-        let markers = [];
+        let markers = L.layerGroup().addTo(map);
+        let currentFilter = 'all';
+        let panelVisible = true;
 
-        // Filter buttons
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                currentFilter = btn.dataset.filter;
+        // Toggle side panel
+        function togglePanel() {
+            panelVisible = !panelVisible;
+            const panel = document.getElementById('side-panel');
+            const toggle = document.getElementById('panel-toggle');
+
+            if (panelVisible) {
+                panel.classList.remove('hidden');
+                toggle.classList.add('shifted');
+                toggle.innerHTML = '◀';
+            } else {
+                panel.classList.add('hidden');
+                toggle.classList.remove('shifted');
+                toggle.innerHTML = '▶';
+            }
+        }
+
+        // Filter click handlers
+        document.querySelectorAll('.stat-item').forEach(item => {
+            item.addEventListener('click', () => {
+                document.querySelectorAll('.stat-item').forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+                currentFilter = item.dataset.filter;
                 renderMessages();
+                updateMarkers();
             });
         });
 
-        // Fetch and update data
+        // Fetch data
         async function fetchData() {
             try {
                 // Fetch stats
@@ -532,13 +776,12 @@
                 document.getElementById('stat-triage').textContent = stats.triageReports;
                 document.getElementById('stat-shelter').textContent = stats.shelterUpdates;
                 document.getElementById('stat-missing').textContent = stats.missingPersons;
-                document.getElementById('stat-devices').textContent = stats.connectedDevices;
 
-                // Update devices list
+                // Update devices
                 const devicesList = document.getElementById('devices-list');
                 if (stats.devices && stats.devices.length > 0) {
                     devicesList.innerHTML = stats.devices.map(d => `
-                        <div class="device-chip">
+                        <div class="device-item">
                             <div class="device-dot"></div>
                             <span>${d.name}</span>
                         </div>
@@ -546,15 +789,13 @@
                 }
 
                 // Fetch messages
-                const msgRes = await fetch(`/api/messages?limit=100`);
+                const msgRes = await fetch('/api/messages?limit=50');
                 messages = await msgRes.json();
                 renderMessages();
-
-                // Update map
-                updateMap();
+                updateMarkers();
 
             } catch (error) {
-                console.error('Error fetching data:', error);
+                console.error('Error:', error);
             }
         }
 
@@ -569,86 +810,50 @@
             if (filtered.length === 0) {
                 feed.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-icon">🕊️</div>
-                        <div class="empty-title">No Messages</div>
-                        <div>Messages from the Pigeon mesh network will appear here</div>
+                        <div class="empty-icon">
+                            <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 19c-4-4-8-6.5-8-10a8 8 0 1 1 16 0c0 3.5-4 6-8 10z"/>
+                                <circle cx="12" cy="9" r="3"/>
+                            </svg>
+                        </div>
+                        <div>No messages yet</div>
                     </div>
                 `;
                 return;
             }
 
-            feed.innerHTML = filtered.map(m => renderMessageCard(m)).join('');
+            feed.innerHTML = filtered.map(msg => {
+                const time = new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                const content = getMessageContent(msg);
+
+                return `
+                    <div class="message-card ${msg.type}">
+                        <div class="message-header">
+                            <span class="message-type">${formatType(msg.type)}</span>
+                            <span class="message-time">${time}</span>
+                        </div>
+                        <div class="message-sender">${msg.senderName}</div>
+                        <div class="message-content">${content}</div>
+                    </div>
+                `;
+            }).join('');
         }
 
-        function renderMessageCard(msg) {
-            const time = new Date(msg.timestamp).toLocaleTimeString();
-            const date = new Date(msg.timestamp).toLocaleDateString();
-
-            let content = '';
-            let details = '';
-
+        function getMessageContent(msg) {
             switch (msg.type) {
                 case 'sos':
-                    content = msg.data?.description || 'Emergency alert';
-                    details = `
-                        <div class="detail-item"><span class="detail-label">Urgency:</span> <span class="detail-value">${msg.data?.urgency || 'Unknown'}</span></div>
-                    `;
-                    break;
+                    return msg.data?.description || 'Emergency alert';
                 case 'triage':
-                    content = `Patient: ${msg.data?.patientName || 'Unknown'} - ${msg.data?.condition || 'Unknown condition'}`;
-                    details = `
-                        <div class="detail-item"><span class="detail-label">Age:</span> <span class="detail-value">${msg.data?.age || 'N/A'}</span></div>
-                        <div class="detail-item"><span class="detail-label">Injuries:</span> <span class="detail-value">${msg.data?.injuries || 'N/A'}</span></div>
-                        <div class="detail-item"><span class="detail-label">Conscious:</span> <span class="detail-value">${msg.data?.conscious ? 'Yes' : 'No'}</span></div>
-                        <div class="detail-item"><span class="detail-label">Breathing:</span> <span class="detail-value">${msg.data?.breathing ? 'Yes' : 'No'}</span></div>
-                    `;
-                    break;
+                    return `${msg.data?.patientName || 'Patient'} - ${msg.data?.condition || 'Unknown'}`;
                 case 'shelter':
-                    content = msg.data?.shelterName || 'Shelter update';
-                    details = `
-                        <div class="detail-item"><span class="detail-label">Capacity:</span> <span class="detail-value">${msg.data?.capacity || 'N/A'}</span></div>
-                        <div class="detail-item"><span class="detail-label">Occupancy:</span> <span class="detail-value">${msg.data?.currentOccupancy || 'N/A'}</span></div>
-                        <div class="detail-item"><span class="detail-label">Accepting:</span> <span class="detail-value">${msg.data?.acceptingMore ? 'Yes' : 'No'}</span></div>
-                        <div class="detail-item"><span class="detail-label">Supplies:</span> <span class="detail-value">${msg.data?.supplies?.join(', ') || 'N/A'}</span></div>
-                    `;
-                    break;
+                    return `${msg.data?.shelterName || 'Shelter'} (${msg.data?.currentOccupancy || 0}/${msg.data?.capacity || 0})`;
                 case 'missingPerson':
-                    content = `Missing: ${msg.data?.personName || 'Unknown'}`;
-                    details = `
-                        <div class="detail-item"><span class="detail-label">Last Seen:</span> <span class="detail-value">${msg.data?.lastSeenLocation || 'N/A'}</span></div>
-                        <div class="detail-item"><span class="detail-label">Time:</span> <span class="detail-value">${msg.data?.lastSeenTime || 'N/A'}</span></div>
-                        <div class="detail-item"><span class="detail-label">Description:</span> <span class="detail-value">${msg.data?.physicalDescription || 'N/A'}</span></div>
-                        <div class="detail-item"><span class="detail-label">Contact:</span> <span class="detail-value">${msg.data?.contactInfo || 'N/A'}</span></div>
-                    `;
-                    break;
+                    return `${msg.data?.personName || 'Unknown'} - ${msg.data?.lastSeenLocation || 'Unknown location'}`;
                 case 'broadcast':
-                    content = msg.data?.message || msg.data?.title || 'Broadcast message';
-                    break;
+                    return msg.data?.message || msg.data?.title || 'Broadcast';
                 default:
-                    content = 'Message received';
+                    return 'Message';
             }
-
-            const location = msg.data?.location || msg.data?.lastSeenLocation;
-            const locationHtml = location ? `
-                <div class="message-location">
-                    📍 ${location}
-                </div>
-            ` : '';
-
-            return `
-                <div class="message-card ${msg.type}">
-                    <div class="message-header">
-                        <div class="message-type">
-                            <span class="type-badge">${formatType(msg.type)}</span>
-                        </div>
-                        <span class="message-time">${date} ${time}</span>
-                    </div>
-                    <div class="message-sender">From: ${msg.senderName}</div>
-                    <div class="message-content">${content}</div>
-                    ${locationHtml}
-                    ${details ? `<div class="message-details">${details}</div>` : ''}
-                </div>
-            `;
         }
 
         function formatType(type) {
@@ -656,63 +861,87 @@
                 'sos': 'SOS',
                 'triage': 'Triage',
                 'shelter': 'Shelter',
-                'missingPerson': 'Missing Person',
-                'broadcast': 'Broadcast',
-                'directMessage': 'Direct Message'
+                'missingPerson': 'Missing',
+                'broadcast': 'Broadcast'
             };
             return types[type] || type;
         }
 
-        function updateMap() {
-            // Clear existing markers
-            markers.forEach(m => map.removeLayer(m));
-            markers = [];
+        function updateMarkers() {
+            markers.clearLayers();
 
-            // Add markers for messages with locations
-            // For demo, we'll use random positions near Pittsburgh
-            // In production, you'd geocode the location strings
-            messages.forEach(msg => {
-                const location = msg.data?.location || msg.data?.lastSeenLocation;
-                if (location) {
-                    // Generate a position near Pittsburgh for demo
-                    const lat = 40.4406 + (Math.random() - 0.5) * 0.1;
-                    const lng = -79.9959 + (Math.random() - 0.5) * 0.1;
+            let filtered = messages;
+            if (currentFilter !== 'all') {
+                filtered = messages.filter(m => m.type === currentFilter);
+            }
 
-                    const markerColor = {
-                        'sos': '#ef4444',
-                        'triage': '#f97316',
-                        'shelter': '#3b82f6',
-                        'missingPerson': '#a855f7',
-                        'broadcast': '#22c55e'
-                    }[msg.type] || '#000000';
-
-                    const marker = L.circleMarker([lat, lng], {
-                        radius: 10,
-                        fillColor: markerColor,
-                        color: '#ffffff',
-                        weight: 2,
-                        opacity: 1,
-                        fillOpacity: 0.9
-                    });
-
-                    marker.bindPopup(`
-                        <strong>${formatType(msg.type)}</strong><br>
-                        From: ${msg.senderName}<br>
-                        Location: ${location}<br>
-                        Time: ${new Date(msg.timestamp).toLocaleString()}
-                    `);
-
-                    marker.addTo(map);
-                    markers.push(marker);
+            filtered.forEach((msg, index) => {
+                // Use actual coordinates if available, otherwise generate demo coords
+                let coords;
+                if (msg.data?.latitude && msg.data?.longitude) {
+                    coords = [msg.data.latitude, msg.data.longitude];
+                } else {
+                    coords = getRandomUSCoords(msg.id);
                 }
+
+                // Get icon for message type
+                const pinIcons = {
+                    'sos': '!',
+                    'triage': '+',
+                    'shelter': '⌂',
+                    'missingPerson': '?',
+                    'broadcast': '◉'
+                };
+                const pinIcon = pinIcons[msg.type] || '•';
+                const isUrgent = msg.type === 'sos';
+
+                const icon = L.divIcon({
+                    className: 'pin-marker',
+                    html: `
+                        <div class="pin-shape ${msg.type}">
+                            <span class="pin-icon">${pinIcon}</span>
+                        </div>
+                        ${isUrgent ? '<div class="ping-ring"></div>' : ''}
+                    `,
+                    iconSize: [30, 30],
+                    iconAnchor: [0, 30]
+                });
+
+                const marker = L.marker(coords, { icon });
+
+                // Minimal popup
+                marker.bindPopup(`
+                    <div class="popup-content">
+                        <div class="popup-type">${formatType(msg.type)}</div>
+                        <div class="popup-title">${msg.senderName}</div>
+                        <div class="popup-detail">${getMessageContent(msg)}</div>
+                        ${msg.data?.latitude ? `<div class="popup-coords">${msg.data.latitude.toFixed(4)}, ${msg.data.longitude.toFixed(4)}</div>` : ''}
+                    </div>
+                `);
+
+                markers.addLayer(marker);
             });
+        }
+
+        function getRandomUSCoords(seed) {
+            // Deterministic random based on message ID
+            const hash = seed.split('').reduce((a, b) => {
+                a = ((a << 5) - a) + b.charCodeAt(0);
+                return a & a;
+            }, 0);
+
+            // US bounds approximately
+            const lat = 25 + (Math.abs(hash) % 1000) / 1000 * 23;
+            const lng = -125 + (Math.abs(hash >> 10) % 1000) / 1000 * 55;
+
+            return [lat, lng];
         }
 
         // Initial fetch
         fetchData();
 
-        // Poll for updates every 5 seconds
-        setInterval(fetchData, 5000);
+        // Poll every 3 seconds
+        setInterval(fetchData, 3000);
     </script>
 </body>
 </html>
