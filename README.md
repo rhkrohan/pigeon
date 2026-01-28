@@ -3,7 +3,6 @@
 <p align="center">
   <img src="https://github.com/user-attachments/assets/d988d185-0586-4d02-ae11-16327e86c39d" alt="Pigeon Logo" width="120"/>
 </p>
-<img width="249" height="493" alt="image" src="https://github.com/user-attachments/assets/a0b2ddb9-cb6c-4c3c-b69f-33c5eebab725" />
 
 **Pigeon** is a decentralized, peer-to-peer mesh networking application designed for crisis communication when traditional infrastructure fails. Built for iOS using Apple's Multipeer Connectivity framework, it enables offline communication during natural disasters, emergencies, and infrastructure outages.
 
